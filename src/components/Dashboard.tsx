@@ -7,6 +7,7 @@ import { ProjectFilters } from './ProjectFilters';
 import { LoadingSpinner } from './LoadingSpinner';
 import { RotatingTagline } from './RotatingTagline';
 import { SnackbarBanner } from './SnackbarBanner';
+import { StatsDialog } from './StatsDialog';
 import { MobileFilters, MobileFilterState } from './mobile/MobileFilters';
 import { MobileProjectList } from './mobile/MobileProjectList';
 import { Button } from './ui/button';
@@ -15,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Plus, Calendar, Table, Settings, Archive, Moon, Sun, Image, ChevronDown, Filter, LogOut, HardDrive, User } from 'lucide-react';
+import { Plus, Calendar, Table, Settings, Archive, Moon, Sun, Image, ChevronDown, Filter, LogOut, HardDrive, User, BarChart3 } from 'lucide-react';
 import { FilterOptions, Project, Collaborator } from '../types/project';
 import { useTheme } from './ThemeProvider';
 import { useStatusContext } from './StatusContext';
@@ -129,6 +130,7 @@ export function Dashboard({
   const { profile } = useAdminProfile();
   const { settings: appSettings } = useAppSettings();
   const [internalActiveView, setInternalActiveView] = useState<'table' | 'timeline' | 'archive' | 'lightroom' | 'gdrive'>('table');
+  const [statsOpen, setStatsOpen] = useState(false);
   
   // Login button label - random on every visit!
   const [loginButtonLabel] = useState(() => {
@@ -578,6 +580,10 @@ export function Dashboard({
                             Settings
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => setStatsOpen(true)}>
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          Stats
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={async () => {
@@ -685,6 +691,10 @@ export function Dashboard({
                         Settings
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem onClick={() => setStatsOpen(true)}>
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Stats
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={async () => {
@@ -1008,6 +1018,8 @@ export function Dashboard({
         </Tabs>
       </div>
 
+      {/* Stats Dialog */}
+      <StatsDialog open={statsOpen} onOpenChange={setStatsOpen} />
 
     </div>
   );
