@@ -7,7 +7,6 @@ import { ProjectFilters } from './ProjectFilters';
 import { LoadingSpinner } from './LoadingSpinner';
 import { RotatingTagline } from './RotatingTagline';
 import { SnackbarBanner } from './SnackbarBanner';
-import { StatsDialog } from './StatsDialog';
 import { MobileFilters, MobileFilterState } from './mobile/MobileFilters';
 import { MobileProjectList } from './mobile/MobileProjectList';
 import { Button } from './ui/button';
@@ -93,15 +92,16 @@ interface DashboardProps {
   onDeleteProject?: (id: string) => void;
   onProjectUpdate?: (id: string, data: Partial<Project>) => void;
   onSettings?: () => void;
+  onStats?: () => void;
   onNavigateToLightroom?: (projectId: string) => void;
   onNavigateToGDrive?: (projectId: string) => void;
   onViewGDriveImages?: (projectId: string) => void;
+  isPublicView?: boolean;
   onLogin?: () => void;
   activeView?: 'table' | 'timeline' | 'archive' | 'lightroom' | 'gdrive';
   onViewChange?: (view: 'table' | 'timeline' | 'archive' | 'lightroom' | 'gdrive') => void;
   groupByMode?: 'status' | 'vertical';
   onGroupByModeChange?: (mode: 'status' | 'vertical') => void;
-  isPublicView?: boolean;
 }
 
 export function Dashboard({ 
@@ -114,6 +114,7 @@ export function Dashboard({
   onDeleteProject,
   onProjectUpdate,
   onSettings,
+  onStats,
   onNavigateToLightroom,
   onNavigateToGDrive,
   onViewGDriveImages,
@@ -130,7 +131,6 @@ export function Dashboard({
   const { profile } = useAdminProfile();
   const { settings: appSettings } = useAppSettings();
   const [internalActiveView, setInternalActiveView] = useState<'table' | 'timeline' | 'archive' | 'lightroom' | 'gdrive'>('table');
-  const [statsOpen, setStatsOpen] = useState(false);
   
   // Login button label - random on every visit!
   const [loginButtonLabel] = useState(() => {
@@ -574,7 +574,7 @@ export function Dashboard({
                           </div>
                         </div>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setStatsOpen(true)}>
+                        <DropdownMenuItem onClick={onStats}>
                           <BarChart3 className="mr-2 h-4 w-4" />
                           Stats
                         </DropdownMenuItem>
@@ -685,7 +685,7 @@ export function Dashboard({
                       </div>
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setStatsOpen(true)}>
+                    <DropdownMenuItem onClick={onStats}>
                       <BarChart3 className="mr-2 h-4 w-4" />
                       Stats
                     </DropdownMenuItem>
@@ -1017,9 +1017,6 @@ export function Dashboard({
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Stats Dialog */}
-      <StatsDialog open={statsOpen} onOpenChange={setStatsOpen} />
 
     </div>
   );

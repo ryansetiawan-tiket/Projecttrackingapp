@@ -9,6 +9,34 @@ dan project ini menggunakan [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] - 2025-10-18
+
+### 🎨 Stats Mobile Responsive Improvements
+
+### Fixed
+- 🐛 **Stats Collaboration Tab** - Mobile layout untuk Most Active Collaborators
+  - Smaller avatars (32px mobile vs 40px desktop)
+  - Responsive text sizes (14px mobile vs 16px desktop)
+  - Smart condensing: "5A/3C" format untuk active/completed pada mobile
+  - Vertical layout untuk nama dan stats
+  - Proper badge sizing dan spacing
+
+- 🐛 **Stats Timeline Tab** - Mobile layout untuk Overdue & Upcoming sections
+  - Vertical layout pada mobile (flex-col sm:flex-row)
+  - Responsive headers dan icons (16px mobile vs 20px desktop)
+  - Smaller padding (16px mobile vs 24px desktop)
+  - Badge positioning dengan self-start untuk alignment
+  - Smart text sizing dan spacing
+  - No horizontal overflow
+
+### Changed
+- 🔄 **Responsive breakpoints** - Consistent mobile-first approach
+- 🔄 **Typography scale** - Smaller base sizes untuk mobile
+- 🔄 **Spacing system** - Tighter gaps dan padding pada mobile
+- 🔄 **Icon sizes** - Proportional dengan text size
+
+---
+
 ## [2.1.0] - 2025-10-18
 
 ### 🎉 Stats Feature - Comprehensive Analytics Dashboard
@@ -353,6 +381,7 @@ dan project ini menggunakan [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Type | Description |
 |---------|------|------|-------------|
+| 2.1.1 | 2025-10-18 | Minor | Stats Mobile Responsive Improvements |
 | 2.1.0 | 2025-10-18 | Major | Stats Feature - Comprehensive Analytics Dashboard |
 | 2.0.0 | 2025-01-18 | Major | Comprehensive feature updates & UX improvements |
 | 1.9.0 | 2025-01-15 | Minor | Stats Dashboard implementation |

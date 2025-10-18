@@ -4,6 +4,7 @@ import { Dashboard } from './components/Dashboard';
 import { ProjectPage } from './components/ProjectPage';
 import { ProjectDetailSidebar } from './components/ProjectDetailSidebar';
 import { SettingsPage } from './components/SettingsPage';
+import { StatsPage } from './components/StatsPage';
 import { LightroomPage } from './components/LightroomPage';
 import { GDrivePage } from './components/GDrivePage';
 import { GDrivePreviewGalleryPage } from './components/GDrivePreviewGalleryPage';
@@ -39,7 +40,7 @@ import {
 } from './components/ui/drawer';
 import { useIsMobile } from './components/ui/use-mobile';
 
-type Page = 'dashboard' | 'create-project' | 'edit-project' | 'settings' | 'lightroom' | 'gdrive' | 'gdrive-gallery' | 'auth';
+type Page = 'dashboard' | 'create-project' | 'edit-project' | 'settings' | 'stats' | 'lightroom' | 'gdrive' | 'gdrive-gallery' | 'auth';
 type DashboardView = 'table' | 'timeline' | 'archive' | 'lightroom' | 'gdrive';
 
 function AppContent() {
@@ -102,10 +103,21 @@ function AppContent() {
       setInitialVertical(urlState.vertical);
       setInitialStatus(urlState.status);
     } else if (urlState.page === 'settings') {
-      // Settings page - no additional state needed
-    } else if (urlState.page === 'auth') {
-      // Auth page - no additional state needed
-    }
+        setSelectedProject(null);
+        setLightroomProjectId(null);
+        setGDriveProjectId(null);
+        setDetailSidebarOpen(false);
+      } else if (urlState.page === 'stats') {
+        setSelectedProject(null);
+        setLightroomProjectId(null);
+        setGDriveProjectId(null);
+        setDetailSidebarOpen(false);
+      } else if (urlState.page === 'auth') {
+        setSelectedProject(null);
+        setLightroomProjectId(null);
+        setGDriveProjectId(null);
+        setDetailSidebarOpen(false);
+      }
     // Note: edit-project page requires projects to be loaded first (handled in separate useEffect)
     
     // Replace initial state (don't push - this is initial load)
@@ -211,6 +223,11 @@ function AppContent() {
         // Scroll to top when navigating to gdrive page
         window.scrollTo({ top: 0, behavior: 'instant' });
       } else if (urlState.page === 'settings') {
+        setSelectedProject(null);
+        setLightroomProjectId(null);
+        setGDriveProjectId(null);
+        setDetailSidebarOpen(false);
+      } else if (urlState.page === 'stats') {
         setSelectedProject(null);
         setLightroomProjectId(null);
         setGDriveProjectId(null);
@@ -328,6 +345,16 @@ function AppContent() {
     // 🎯 Push to browser history
     pushURLState({
       page: 'settings'
+    });
+  };
+
+  const navigateToStats = () => {
+    setSelectedProject(null);
+    setCurrentPage('stats');
+    
+    // 🎯 Push to browser history
+    pushURLState({
+      page: 'stats'
     });
   };
 
@@ -619,6 +646,7 @@ function AppContent() {
                   onDeleteProject={handleDeleteProject}
                   onProjectUpdate={handleQuickUpdateProject}
                   onSettings={navigateToSettings}
+                  onStats={navigateToStats}
                   onNavigateToLightroom={navigateToLightroom}
                   onNavigateToGDrive={navigateToGDrive}
                   onViewGDriveImages={navigateToGDriveGallery}
@@ -740,6 +768,12 @@ function AppContent() {
                   onUpdateCollaborator={updateCollaborator}
                   onDeleteCollaborator={deleteCollaborator}
                   onRefreshData={refreshData}
+                />
+              )}
+
+              {currentPage === 'stats' && (
+                <StatsPage
+                  onBack={() => navigateToDashboard('table')}
                 />
               )}
 

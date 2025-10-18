@@ -271,23 +271,23 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
 
       {/* Overdue Projects Alert */}
       {overdueProjects.length > 0 && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
-          <h3 className="mb-4 flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-5 w-5" />
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 md:p-6">
+          <h3 className="mb-4 flex items-center gap-2 text-destructive text-sm md:text-base">
+            <AlertCircle className="h-4 w-4 md:h-5 md:w-5" />
             Overdue Projects
           </h3>
           <div className="space-y-2">
             {overdueProjects.map(project => (
-              <div key={project.id} className="flex items-center justify-between p-2 rounded bg-background/50">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{project.project_name}</p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline" className="text-xs">{project.vertical}</Badge>
-                    <span>•</span>
-                    <span>Due {new Date(project.due_date).toLocaleDateString()}</span>
+              <div key={project.id} className="flex items-start sm:items-center gap-2 p-2 rounded bg-background/50 flex-col sm:flex-row">
+                <div className="flex-1 min-w-0 w-full">
+                  <p className="font-medium truncate text-sm md:text-base">{project.project_name}</p>
+                  <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground flex-wrap mt-1">
+                    <Badge variant="outline" className="text-[10px] md:text-xs px-1 md:px-2">{project.vertical}</Badge>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="text-[10px] md:text-xs">Due {new Date(project.due_date).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <Badge variant="destructive" className="ml-2">
+                <Badge variant="destructive" className="text-[10px] md:text-xs shrink-0 self-start sm:self-auto sm:ml-2">
                   {project.daysOverdue} days overdue
                 </Badge>
               </div>
@@ -298,25 +298,25 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
 
       {/* Upcoming Deadlines */}
       {upcomingDeadlines.length > 0 && (
-        <div className="bg-card rounded-lg border p-6">
-          <h3 className="mb-4 flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <div className="bg-card rounded-lg border p-4 md:p-6">
+          <h3 className="mb-4 flex items-center gap-2 text-sm md:text-base">
+            <Calendar className="h-4 w-4 md:h-5 md:w-5" />
             Upcoming Deadlines (Next 14 Days)
           </h3>
           <div className="space-y-2">
             {upcomingDeadlines.map(project => (
-              <div key={project.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{project.project_name}</p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline" className="text-xs">{project.vertical}</Badge>
-                    <span>•</span>
-                    <span>Due {new Date(project.due_date).toLocaleDateString()}</span>
+              <div key={project.id} className="flex items-start sm:items-center gap-2 p-2 rounded hover:bg-muted/50 transition-colors flex-col sm:flex-row">
+                <div className="flex-1 min-w-0 w-full">
+                  <p className="font-medium truncate text-sm md:text-base">{project.project_name}</p>
+                  <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground flex-wrap mt-1">
+                    <Badge variant="outline" className="text-[10px] md:text-xs px-1 md:px-2">{project.vertical}</Badge>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="text-[10px] md:text-xs">Due {new Date(project.due_date).toLocaleDateString()}</span>
                   </div>
                 </div>
                 <Badge 
                   variant={project.daysUntil <= 3 ? 'destructive' : project.daysUntil <= 7 ? 'default' : 'secondary'}
-                  className="ml-2"
+                  className="text-[10px] md:text-xs shrink-0 self-start sm:self-auto sm:ml-2"
                 >
                   {project.daysUntil === 0 ? 'Today' : project.daysUntil === 1 ? 'Tomorrow' : `${project.daysUntil} days`}
                 </Badge>

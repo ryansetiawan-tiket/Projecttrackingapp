@@ -204,46 +204,47 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
 
       {/* Top Collaborators */}
       {topCollaborators.length > 0 && (
-        <div className="bg-card rounded-lg border p-6">
+        <div className="bg-card rounded-lg border p-4 md:p-6">
           <h3 className="mb-4">Most Active Collaborators</h3>
           <div className="space-y-3">
             {topCollaborators.map((collab, index) => (
-              <div key={collab.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="text-lg font-semibold text-muted-foreground w-6">
+              <div key={collab.id} className="flex items-center gap-2 md:gap-4 p-2 md:p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="text-sm md:text-lg font-semibold text-muted-foreground w-5 md:w-6 shrink-0">
                   #{index + 1}
                 </div>
                 
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10 shrink-0">
                   {collab.photo_url ? (
                     <AvatarImage src={collab.photo_url} alt={collab.name} />
                   ) : (
-                    <AvatarFallback>
+                    <AvatarFallback className="text-xs md:text-sm">
                       {collab.nickname || collab.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">{collab.name}</p>
+                  <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+                    <p className="font-medium truncate text-sm md:text-base">{collab.name}</p>
                     {collab.nickname && (
-                      <span className="text-sm text-muted-foreground">({collab.nickname})</span>
+                      <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">({collab.nickname})</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline" className="text-xs">
+                  <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground flex-wrap">
+                    <Badge variant="outline" className="text-[10px] md:text-xs px-1 md:px-2">
                       {collab.role}
                     </Badge>
-                    <span>•</span>
-                    <span>{collab.activeProjects} active</span>
-                    <span>•</span>
-                    <span>{collab.completedProjects} completed</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline">{collab.activeProjects} active</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline">{collab.completedProjects} completed</span>
+                    <span className="sm:hidden text-[10px]">{collab.activeProjects}A / {collab.completedProjects}C</span>
                   </div>
                 </div>
                 
-                <div className="text-right">
-                  <div className="text-2xl font-bold">{collab.projectCount}</div>
-                  <div className="text-xs text-muted-foreground">projects</div>
+                <div className="text-right shrink-0">
+                  <div className="text-lg md:text-2xl font-bold">{collab.projectCount}</div>
+                  <div className="text-[10px] md:text-xs text-muted-foreground">projects</div>
                 </div>
               </div>
             ))}
