@@ -36,6 +36,7 @@ export function ProjectTableRow({
   const { linkLabels } = useLinkLabels();
   const { getStatusColor: getStatusColorFromContext, getStatusTextColor, statuses } = useStatusContext();
   const [hoveredCollaboratorCell, setHoveredCollaboratorCell] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   
   // Get status options from context
   const sortedStatuses = [...statuses].sort((a, b) => a.order - b.order);
@@ -85,6 +86,8 @@ export function ProjectTableRow({
       key={project.id}
       className={`cursor-pointer ${rowBgColor}`}
       onClick={() => handlers.onClick(project)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Project Name Cell */}
       <TableCell className={`${config.rowPadding} w-[420px] min-w-[420px] max-w-[420px]`}>
@@ -295,6 +298,7 @@ export function ProjectTableRow({
             links={project.links}
             linkLabels={linkLabels}
             onAddLink={handlers.onAddLink ? () => handlers.onAddLink!(project.id) : undefined}
+            isHovered={isHovered}
           />
         </div>
       </TableCell>
@@ -309,6 +313,7 @@ export function ProjectTableRow({
             onNavigateToGDrive={() => handlers.onNavigateToGDrive(project.id)}
             onAddLightroom={handlers.onAddLightroom ? () => handlers.onAddLightroom!(project.id) : undefined}
             onAddGDrive={handlers.onAddGDrive ? () => handlers.onAddGDrive!(project.id) : undefined}
+            isHovered={isHovered}
           />
         </div>
       </TableCell>

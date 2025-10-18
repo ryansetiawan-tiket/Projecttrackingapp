@@ -2210,34 +2210,59 @@ export function ActionableItemManager({
                             ))}
                           </div>
                         )}
-                        {/* Simple Assignee Dropdown */}
-                        <Select
-                          value=""
-                          onValueChange={(collaboratorId: string) => {
-                            const collaborator = globalCollaborators.find(c => c.id === collaboratorId);
-                            if (collaborator && !formData.collaborators.some(c => c.id === collaboratorId)) {
-                              handleAddCollaboratorToForm(collaborator);
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Add assignee..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {globalCollaborators
-                              .filter(collaborator => !formData.collaborators.some(c => c.id === collaborator.id))
-                              .map((collaborator) => (
-                                <SelectItem key={collaborator.id} value={collaborator.id} className="text-xs">
-                                  {collaborator.nickname || collaborator.name} ({collaborator.role})
-                                </SelectItem>
-                              ))}
-                            {globalCollaborators.filter(collaborator => !formData.collaborators.some(c => c.id === collaborator.id)).length === 0 && (
-                              <SelectItem value="all-assigned" disabled className="text-xs text-muted-foreground">
-                                All collaborators assigned
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                        {/* Searchable Assignee Dropdown */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-start h-8 text-xs"
+                            >
+                              <Users className="mr-2 h-3 w-3" />
+                              Add assignee...
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput 
+                                placeholder="Search collaborators..." 
+                                className="h-8 text-xs"
+                              />
+                              <CommandList>
+                                <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
+                                  No collaborators found.
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {globalCollaborators
+                                    .filter(collaborator => !formData.collaborators.some(c => c.id === collaborator.id))
+                                    .map((collaborator) => (
+                                      <CommandItem
+                                        key={collaborator.id}
+                                        value={`${collaborator.nickname || collaborator.name} ${collaborator.role}`}
+                                        onSelect={() => {
+                                          handleAddCollaboratorToForm(collaborator);
+                                        }}
+                                        className="text-xs cursor-pointer"
+                                      >
+                                        <User className="mr-2 h-3 w-3" />
+                                        <span className="flex-1">
+                                          {collaborator.nickname || collaborator.name}
+                                        </span>
+                                        <span className="text-muted-foreground text-xs">
+                                          {collaborator.role}
+                                        </span>
+                                      </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                                {globalCollaborators.filter(collaborator => !formData.collaborators.some(c => c.id === collaborator.id)).length === 0 && (
+                                  <div className="py-6 text-center text-xs text-muted-foreground">
+                                    All collaborators assigned
+                                  </div>
+                                )}
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
 
                       </div>
                     </div>

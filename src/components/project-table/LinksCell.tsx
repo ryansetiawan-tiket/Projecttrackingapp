@@ -29,9 +29,10 @@ interface LinksCellProps {
   links: ProjectLinks;
   linkLabels: Array<{ name: string; icon_type?: string; icon_data?: string }>;
   onAddLink?: () => void;
+  isHovered?: boolean;
 }
 
-export function LinksCell({ links, linkLabels, onAddLink }: LinksCellProps) {
+export function LinksCell({ links, linkLabels, onAddLink, isHovered }: LinksCellProps) {
   // Sort links alphabetically by label
   const sortedLinks = links?.labeled ? [...links.labeled].sort((a, b) => 
     (a.label || '').localeCompare(b.label || '')
@@ -73,7 +74,7 @@ export function LinksCell({ links, linkLabels, onAddLink }: LinksCellProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 items-center relative">
         {sortedLinks.length > 0 ? (
           <>
             {sortedLinks.slice(0, 2).map((link) => {
@@ -137,6 +138,30 @@ export function LinksCell({ links, linkLabels, onAddLink }: LinksCellProps) {
           </>
         ) : (
           <span className="text-xs text-muted-foreground">-</span>
+        )}
+        
+        {/* Plus button - Absolute positioned, shows on hover when there are existing links */}
+        {onAddLink && sortedLinks.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`absolute -right-8 top-1/2 -translate-y-1/2 h-7 w-7 p-0 rounded-full hover:bg-accent transition-opacity ${
+                  isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddLink();
+                }}
+              >
+                <Plus className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Add link</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
     </TooltipProvider>

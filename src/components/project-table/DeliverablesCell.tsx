@@ -13,6 +13,7 @@ interface DeliverablesCellProps {
   onNavigateToGDrive?: () => void;
   onAddLightroom?: () => void;
   onAddGDrive?: () => void;
+  isHovered?: boolean;
 }
 
 export function DeliverablesCell({
@@ -21,7 +22,8 @@ export function DeliverablesCell({
   onNavigateToLightroom,
   onNavigateToGDrive,
   onAddLightroom,
-  onAddGDrive
+  onAddGDrive,
+  isHovered
 }: DeliverablesCellProps) {
   const hasLightroom = lightroomAssets && lightroomAssets.length > 0;
   const hasGDrive = gdriveAssets && gdriveAssets.length > 0;
@@ -80,7 +82,7 @@ export function DeliverablesCell({
 
   return (
     <TooltipProvider>
-      <div className="flex gap-1 items-center">
+      <div className="flex gap-1 items-center relative">
         {hasGDrive && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -126,6 +128,50 @@ export function DeliverablesCell({
               <p>Lightroom ({lightroomAssets?.length || 0})</p>
             </TooltipContent>
           </Tooltip>
+        )}
+        
+        {/* Plus button - Absolute positioned, shows on hover when there are existing assets */}
+        {(onAddLightroom || onAddGDrive) && (hasGDrive || hasLightroom) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`absolute -right-8 top-1/2 -translate-y-1/2 h-7 w-7 p-0 rounded-full hover:bg-accent transition-opacity ${
+                  isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Plus className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" onClick={(e) => e.stopPropagation()}>
+              {onAddGDrive && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddGDrive();
+                  }}
+                  className="gap-2"
+                >
+                  <GoogleDriveIcon className="h-4 w-4" />
+                  <span>Add Google Drive Assets</span>
+                </DropdownMenuItem>
+              )}
+              {onAddLightroom && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddLightroom();
+                  }}
+                  className="gap-2"
+                >
+                  <LightroomIcon className="h-4 w-4" />
+                  <span>Add Lightroom Assets</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </TooltipProvider>

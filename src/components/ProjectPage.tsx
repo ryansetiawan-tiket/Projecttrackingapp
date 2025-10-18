@@ -153,7 +153,7 @@ export function ProjectPage({
   }, [project, initialVertical, initialStatus]);
 
   // Form submission
-  const handleSubmit = async (isDraft: boolean = false) => {
+  const handleSubmit = async (isDraft: boolean = false, shouldClose: boolean = true) => {
     setIsLoading(true);
     try {
       // Clean and sanitize data before saving to prevent circular reference errors
@@ -171,7 +171,15 @@ export function ProjectPage({
         await onSave('', dataToSave);
         toast.success(isDraft ? 'Draft saved successfully!' : 'Project created successfully!');
       }
-      onBack();
+      
+      // Only close the page if shouldClose is true
+      if (shouldClose) {
+        onBack();
+      } else {
+        // Update initial form data to reflect saved state when not closing
+        setInitialFormData(formData);
+        setHasChanges(false);
+      }
     } catch (error) {
       console.error('Error saving project:', error);
       toast.error('Failed to save project. Please try again.');
@@ -329,7 +337,7 @@ export function ProjectPage({
                 {/* Save as Draft - only show when there are changes */}
                 {hasChanges && (
                   <Button 
-                    onClick={() => handleSubmit(true)} 
+                    onClick={() => handleSubmit(true, false)} 
                     disabled={isLoading}
                     variant="outline"
                     className="flex items-center gap-2"
@@ -398,7 +406,7 @@ export function ProjectPage({
             {/* Save as Draft - only show when there are changes */}
             {hasChanges && (
               <Button 
-                onClick={() => handleSubmit(true)} 
+                onClick={() => handleSubmit(true, false)} 
                 disabled={isLoading}
                 variant="outline"
                 className="flex-1 text-sm"
@@ -436,7 +444,7 @@ export function ProjectPage({
             {/* Save as Draft - only show when there are changes */}
             {hasChanges && (
               <Button 
-                onClick={() => handleSubmit(true)} 
+                onClick={() => handleSubmit(true, false)} 
                 disabled={isLoading}
                 variant="outline"
                 className="flex-1"

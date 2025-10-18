@@ -221,15 +221,15 @@ export function AddProjectLinkDialog({
                   </div>
                   <div className="space-y-2 max-h-[120px] overflow-y-auto">
                     {selectedProject.links.labeled.map((link) => (
-                      <div key={link.id} className="flex items-center gap-2 p-2 bg-background rounded">
-                        <Badge variant="outline" className="text-xs shrink-0">
+                      <div key={link.id} className="flex items-start gap-2 p-2 bg-background rounded">
+                        <Badge variant="outline" className="text-xs shrink-0 mt-0.5">
                           {link.label}
                         </Badge>
                         <a
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline truncate block"
+                          className="text-sm text-blue-600 hover:underline break-all min-w-0 flex-1"
                           title={link.url}
                         >
                           {link.url}
