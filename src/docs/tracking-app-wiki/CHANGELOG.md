@@ -9,15 +9,69 @@ dan project ini menggunakan [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [2.1.0] - 2025-10-18
 
-### Planned
-- Export projects to CSV/JSON
-- Bulk operations untuk projects
-- Advanced filtering & search
-- Custom dashboard widgets
-- Email notifications
-- Calendar sync integration
+### 🎉 Stats Feature - Comprehensive Analytics Dashboard
+
+### Added
+- ✨ **Stats Dashboard dengan 5 tabs**:
+  1. **Overview Tab** - Aggregate statistics & high-level insights
+  2. **Projects Tab** - Per-project detailed analytics
+  3. **Assets Tab** - Deliverables statistics (GDrive & Lightroom)
+  4. **Collaboration Tab** - Team & collaborator analytics
+  5. **Timeline Tab** - Schedule, deadlines, dan duration analytics
+
+#### Tab 1: Overview
+- ✨ 6 Stats Cards: Total Projects, Active, Completed, Avg Duration, Completion Rate, On-time Delivery
+- ✨ Projects by Type (Pie Chart) dengan colors dari settings
+- ✨ Projects by Status (Bar Chart) dengan colors dari settings
+- ✨ Quarter Distribution (Bar Chart) dengan multi-year support
+- ✨ Projects by Vertical (Pie Chart) dengan colors dari settings
+
+#### Tab 2: Projects
+- ✨ 4 Stats Cards: Total, Active, Completed, Avg Duration
+- ✨ Detailed charts untuk Status, Type, Vertical, dan Quarter distribution
+- ✨ All charts menggunakan warna dari settings page
+
+#### Tab 3: Assets
+- ✨ 4 Stats Cards: Total Assets, GDrive, Lightroom, Avg per Project
+- ✨ Assets by Platform (Pie Chart) - GDrive vs Lightroom distribution
+- ✨ Files vs Folders (Pie Chart) - Combined breakdown
+- ✨ Assets by Project Type (Bar Chart)
+- ✨ Top Projects by Asset Count (Horizontal Bar Chart)
+
+#### Tab 4: Collaboration
+- ✨ 4 Stats Cards: Total Collaborators, Avg per Project, Avg per Collaborator, Projects with Team
+- ✨ Most Active Collaborators (Ranked List) - Top 10 dengan avatar, role, dan project counts
+- ✨ Collaborators by Role (Pie Chart)
+- ✨ Projects by Team Size (Bar Chart) - Solo, 1-2, 3-5, 6-10, 11+ distribution
+- ✨ Workload by Role (Grouped Bar Chart) - Total vs Active projects
+
+#### Tab 5: Timeline
+- ✨ 4 Stats Cards: Overdue Projects, Due This Week, Due This Month, Avg Duration
+- ✨ Overdue Projects Alert (Red Box) - Only non-completed projects dengan days overdue
+- ✨ Upcoming Deadlines (Next 14 Days) - Color-coded urgency badges
+- ✨ Projects by Quarter (Grouped Bar Chart) - Starting vs Ending
+- ✨ Project Starts Last 12 Months (Line Chart)
+- ✨ Project Duration Distribution (Bar Chart)
+
+### Technical Implementation
+- ✨ Created 6 new components in `/components/stats/`
+- ✨ Reusable `StatsCard` component for consistent styling
+- ✨ Performance optimization dengan `useMemo` untuk expensive calculations
+- ✨ Color consistency system menggunakan settings page colors
+- ✨ Responsive design untuk mobile & desktop
+- ✨ Empty state handling untuk semua charts
+
+### Fixed
+- 🐛 **Quarter Distribution colors** - Different colors untuk different years
+- 🐛 **Assets Tab focus** - Removed action items stats, fokus pada deliverables only
+- 🐛 **Import error** - Fixed `getQuarterLabel` function menggunakan existing utilities
+
+### Changed
+- 🔄 **Stats menu position** - Moved before Settings in profile dropdown (already in v2.0.0)
+- 🔄 **Chart colors** - All charts now use colors from settings page for consistency
+- 🔄 **Timeline calculations** - Smart filtering untuk overdue (only non-completed projects)
 
 ---
 
@@ -299,6 +353,7 @@ dan project ini menggunakan [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Type | Description |
 |---------|------|------|-------------|
+| 2.1.0 | 2025-10-18 | Major | Stats Feature - Comprehensive Analytics Dashboard |
 | 2.0.0 | 2025-01-18 | Major | Comprehensive feature updates & UX improvements |
 | 1.9.0 | 2025-01-15 | Minor | Stats Dashboard implementation |
 | 1.8.0 | 2025-01-10 | Minor | Dynamic collaborator layout & role management |
@@ -359,4 +414,4 @@ Saat membuat perubahan:
 
 ---
 
-**Last Updated**: 2025-01-18
+**Last Updated**: 2025-10-18

@@ -9,6 +9,9 @@ import { useTypes } from '../hooks/useTypes';
 import { useVerticals } from '../hooks/useVerticals';
 import { StatsOverview } from './stats/StatsOverview';
 import { StatsProjects } from './stats/StatsProjects';
+import { StatsAssets } from './stats/StatsAssets';
+import { StatsCollaboration } from './stats/StatsCollaboration';
+import { StatsTimeline } from './stats/StatsTimeline';
 import { Skeleton } from './ui/skeleton';
 
 interface StatsDialogProps {
@@ -74,21 +77,15 @@ export function StatsDialog({ open, onOpenChange }: StatsDialogProps) {
                   </TabsContent>
                   
                   <TabsContent value="assets" className="mt-6">
-                    <div className="text-center text-muted-foreground py-12">
-                      Assets stats coming soon...
-                    </div>
+                    <StatsAssets projects={projects} statuses={statuses} />
                   </TabsContent>
                   
                   <TabsContent value="collaboration" className="mt-6">
-                    <div className="text-center text-muted-foreground py-12">
-                      Collaboration stats coming soon...
-                    </div>
+                    <StatsCollaboration projects={projects} />
                   </TabsContent>
                   
                   <TabsContent value="timeline" className="mt-6">
-                    <div className="text-center text-muted-foreground py-12">
-                      Timeline stats coming soon...
-                    </div>
+                    <StatsTimeline projects={projects} />
                   </TabsContent>
                 </>
               )}
