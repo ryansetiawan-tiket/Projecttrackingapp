@@ -1,0 +1,764 @@
+@custom-variant dark (&:is(.dark *));
+
+/* TiketOdysseyText Font Family */
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-Regular.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-Italic.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-Italic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-SemiBold.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-SemiBold.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-SemiBoldItalic.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-SemiBoldItalic.woff') format('woff');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-Bold.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-BoldItalic.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-BoldItalic.woff') format('woff');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-ExtraBold.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-ExtraBold.woff') format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TiketOdyssey';
+  src: url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-ExtraBoldItalic.woff2') format('woff2'),
+       url('https://snymazdqexjovkdvepso.supabase.co/storage/v1/object/public/fonts/TiketOdysseyText-ExtraBoldItalic.woff') format('woff');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --font-family: 'TiketOdyssey', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-size: 16px;
+  --background: #fafafa;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #030213;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.0058 264.53);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.15);
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #030213;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.12 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.35 0 0);
+  --input: oklch(0.269 0 0);
+  --input-background: oklch(0.205 0 0);
+  --switch-background: oklch(0.35 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-family);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family);
+  }
+
+  /* Screen reader only - visually hidden but accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    button {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+/* Utility classes for line clamping */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Custom scrollbar styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225);
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(156 163 175);
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide native date picker icon (we use custom icon instead) */
+.date-input-no-icon::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.date-input-no-icon::-webkit-inner-spin-button,
+.date-input-no-icon::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* Firefox */
+.date-input-no-icon[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+/* React Slick Carousel Customization */
+.slick-slider {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  user-select: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.slick-list {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.slick-track {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.slick-slide {
+  display: none;
+  float: left;
+  height: 100%;
+  min-height: 1px;
+}
+
+.slick-slide > div {
+  height: 100%;
+}
+
+.slick-initialized .slick-slide {
+  display: block;
+}
+
+.slick-loading .slick-slide {
+  visibility: hidden;
+}
+
+.slick-slide.dragging img {
+  pointer-events: none;
+}
+
+/* Prevent image dragging inside carousel */
+.slick-slide img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Shared Carousel Dots Styling - Links & Asset Preview */
+.links-carousel,
+.asset-preview-carousel {
+  width: 100%;
+  position: relative;
+}
+
+/* Links Carousel - Dots below content */
+.links-carousel .slick-dots {
+  position: relative !important;
+  bottom: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0;
+  margin: 8px auto 0 auto !important;
+  list-style: none;
+  width: 100%;
+}
+
+/* Asset Preview Carousel - Custom dots container outside rounded thumbnail */
+.asset-preview-carousel .carousel-dots-container {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.asset-preview-carousel .slick-dots {
+  position: relative !important;
+  bottom: auto !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0;
+  margin: 0 !important;
+  list-style: none;
+  width: auto;
+}
+
+.links-carousel .slick-dots li,
+.asset-preview-carousel .slick-dots li {
+  position: relative !important;  /* Override absolute positioning */
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  list-style: none;
+  flex-shrink: 0;  /* Prevent dots from shrinking */
+}
+
+.links-carousel .slick-dots li button,
+.asset-preview-carousel .slick-dots li button {
+  display: block;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0;
+  line-height: 0;
+}
+
+.links-carousel .slick-dots li button:before,
+.asset-preview-carousel .slick-dots li button:before {
+  display: none !important;
+  content: none !important;
+}
+
+.links-carousel .slick-dots li div,
+.asset-preview-carousel .slick-dots li div {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: var(--color-muted-foreground);
+  opacity: 0.5;
+  transition: all 200ms ease-in-out;
+  pointer-events: none;  /* Let clicks pass through to button */
+}
+
+/* Hover state for all dots */
+.links-carousel .slick-dots li:hover div,
+.asset-preview-carousel .slick-dots li:hover div {
+  opacity: 0.7;
+}
+
+/* Active state - elongated pill */
+.links-carousel .slick-dots li.slick-active div,
+.asset-preview-carousel .slick-dots li.slick-active div {
+  width: 20px;
+  background-color: var(--color-muted-foreground);
+  opacity: 1;
+}
+
+/* Mobile optimizations */
+@layer utilities {
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Drag optimizations */
+  .cursor-grab {
+    cursor: grab;
+  }
+  
+  .cursor-grabbing {
+    cursor: grabbing;
+  }
+
+  /* Mobile content spacing for fixed bottom bars */
+  .mobile-bottom-spacing {
+    padding-bottom: 80px;
+  }
+  
+  /* Safe area padding for mobile */
+  .pb-safe {
+    padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+  }
+  
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  /* Mobile timeline specific */
+  .mobile-timeline-container {
+    height: calc(100vh - 80px);
+    max-height: calc(100vh - 80px);
+  }
+  
+  /* Smooth momentum scrolling for iOS */
+  .momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Better touch targets for mobile */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text selection on touch */
+  .no-touch-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* Pulsing border animation for due today items */
+  @keyframes border-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 var(--pulse-color, #EF4444);
+    }
+    50% {
+      box-shadow: 0 0 12px 3px var(--pulse-color, #EF4444);
+    }
+  }
+  
+  .animate-border-pulse {
+    animation: border-pulse 2s ease-in-out infinite;
+  }
+  
+  /* Prevent layout shift and flickering in workflow selector */
+  .workflow-container {
+    position: relative;
+    min-height: 110px; /* Reserve space to prevent layout shift */
+    overflow: hidden;
+  }
+  
+  .workflow-section-transition {
+    transition: opacity 250ms cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+  }
+  
+  .workflow-section-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  
+  .workflow-section-hidden {
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+  }
+}
+
+/* Smooth scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Full screen drawer fixes */
+@layer components {
+  /* Force 85% height drawer for mobile with safe area */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] {
+    max-height: 85vh !important;
+    height: 85vh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-top: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-top-left-radius: var(--radius-lg) !important;
+    border-top-right-radius: var(--radius-lg) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    box-sizing: border-box !important;
+    contain: layout size style paint !important;
+  }
+  
+  /* Force all direct children to respect drawer width */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] > * {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Prevent any element inside drawer from overflowing */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] * {
+    box-sizing: border-box;
+  }
+  
+  /* Ensure drawer content wrapper doesn't overflow */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .flex-1 {
+    max-width: 100%;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Ensure ScrollArea respects drawer width */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] [data-radix-scroll-area-viewport] {
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Ensure ScrollArea root respects drawer width */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] [data-slot="scroll-area"] {
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Ensure all cards and containers inside drawer respect width */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .rounded-lg,
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .rounded-xl,
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] [class*="border"],
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .space-y-6,
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .space-y-8,
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .space-y-3 {
+    max-width: 100%;
+  }
+  
+  /* Force grid containers to respect width */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] .grid {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  /* NUCLEAR OPTION: Force EVERY element to never exceed viewport */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
+    max-width: 100vw !important;
+  }
+  
+  /* Force text to wrap and never overflow */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] p,
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] span,
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] div {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+  
+  /* Prevent negative margins from causing overflow */
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] {
+    isolation: isolate;
+  }
+  
+  /* Prevent body scroll when drawer is open (fixes width calculation) */
+  body:has([data-vaul-drawer-direction="bottom"][data-slot="drawer-content"]) {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* Ensure drawer overlay doesn't affect width */
+  [data-slot="drawer-overlay"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* DEBUG: Uncomment to see which element is overflowing (remove in production) */
+  /*
+  [data-vaul-drawer-direction="bottom"][data-slot="drawer-content"] * {
+    outline: 1px solid red !important;
+  }
+  */
+  
+  /* Better scrolling in drawer */
+  .drawer-scroll-area {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Desktop scrolling fix */
+  @media (min-width: 768px) {
+    .drawer-scroll-area {
+      scrollbar-width: thin;
+      scrollbar-color: rgb(203 213 225) transparent;
+    }
+    
+    .drawer-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .drawer-scroll-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .drawer-scroll-area::-webkit-scrollbar-thumb {
+      background-color: rgb(203 213 225);
+      border-radius: 3px;
+    }
+    
+    .drawer-scroll-area::-webkit-scrollbar-thumb:hover {
+      background-color: rgb(156 163 175);
+    }
+  }
+}
