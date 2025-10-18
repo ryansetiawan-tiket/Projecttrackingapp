@@ -1,31 +1,46 @@
 import { useMemo } from 'react';
 import { Project } from '../../types/project';
+import { Vertical } from '../../hooks/useVerticals';
 import { StatsCard } from './StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { TrendingUp, Clock, Calendar } from 'lucide-react';
 import {
   getQuarterFromDate,
-  getStatusColor,
-  getVerticalColor,
-  getTypeColor,
   calculatePercentage,
   calculateDaysBetween,
   isProjectCompleted,
   isValidDate,
   getQuarterString
 } from '../../utils/statsCalculations';
-import { formatForPieChart, formatForBarChart, CHART_COLORS } from '../../utils/chartHelpers';
+import { formatForPieChart, formatForBarChart, CHART_COLOR_ARRAY } from '../../utils/chartHelpers';
 
 interface StatsProjectsProps {
   projects: Project[];
   statuses: any[];
-  types: any[];
+  types: string[];
+  typeColors: Record<string, string>;
+  verticals: Vertical[];
 }
 
-export function StatsProjects({ projects, statuses, types }: StatsProjectsProps) {
+export function StatsProjects({ projects, statuses, types, typeColors, verticals }: StatsProjectsProps) {
   const stats = useMemo(() => {
     const totalProjects = projects.length;
+    
+    // Helper functions to get colors from arrays
+    const getStatusColor = (statusName: string, statuses: any[]) => {
+      const status = statuses.find(s => s.name === statusName);
+      return status?.color || 'hsl(0, 0%, 50%)';
+    };
+    
+    const getVerticalColor = (verticalName: string, verticals: Vertical[]) => {
+      const vertical = verticals.find(v => v.name === verticalName);
+      return vertical?.color || 'hsl(0, 0%, 50%)';
+    };
+    
+    const getTypeColor = (typeName: string, typeColors: Record<string, string>) => {
+      return typeColors[typeName] || 'hsl(0, 0%, 50%)';
+    };
     
     // ============================================================================
     // STATUS DISTRIBUTION
@@ -57,7 +72,7 @@ export function StatsProjects({ projects, statuses, types }: StatsProjectsProps)
     const byVertical = Array.from(verticalMap.entries())
       .map(([vertical, count]) => ({
         vertical,
-        color: getVerticalColor(vertical),
+        color: getVerticalColor(vertical, verticals),
         count,
         percentage: calculatePercentage(count, totalProjects)
       }))
@@ -68,14 +83,24 @@ export function StatsProjects({ projects, statuses, types }: StatsProjectsProps)
     // ============================================================================
     const typeMap = new Map<string, number>();
     projects.forEach(project => {
-      const type = project.type || 'No Type';
-      typeMap.set(type, (typeMap.get(type) || 0) + 1);
+      // Handle both single type and multiple types (types array)
+      if (project.types && Array.isArray(project.types) && project.types.length > 0) {
+        // New format: multiple types
+        project.types.forEach(type => {
+          const typeName = type || 'No Type';
+          typeMap.set(typeName, (typeMap.get(typeName) || 0) + 1);
+        });
+      } else {
+        // Old format: single type (backward compatibility)
+        const type = project.type || 'No Type';
+        typeMap.set(type, (typeMap.get(type) || 0) + 1);
+      }
     });
     
     const byType = Array.from(typeMap.entries())
       .map(([type, count]) => ({
         type,
-        color: getTypeColor(type, types),
+        color: getTypeColor(type, typeColors),
         count,
         percentage: calculatePercentage(count, totalProjects)
       }))
@@ -118,10 +143,10 @@ export function StatsProjects({ projects, statuses, types }: StatsProjectsProps)
     // DURATION STATISTICS
     // ============================================================================
     const durations = projects
-      .filter(p => p.start_date && p.end_date && isValidDate(p.start_date) && isValidDate(p.end_date))
+      .filter(p => p.start_date && p.due_date && isValidDate(p.start_date) && isValidDate(p.due_date))
       .map(p => ({
         name: p.project_name || p.id,
-        days: calculateDaysBetween(p.start_date!, p.end_date!)
+        days: calculateDaysBetween(p.start_date!, p.due_date!)
       }))
       .filter(d => d.days > 0);
     
@@ -156,43 +181,10 @@ export function StatsProjects({ projects, statuses, types }: StatsProjectsProps)
       activeProjects,
       completedProjects
     };
-  }, [projects, statuses, types]);
+  }, [projects, statuses, types, typeColors, verticals]);
   
   return (
     <div className="space-y-6">
-      {/* Status Distribution - Horizontal Bar Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Status Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats.byStatus.length > 0 ? (
-            <ResponsiveContainer width="100%" height={Math.max(200, stats.byStatus.length * 40)}>
-              <BarChart data={stats.byStatus} layout="vertical" margin={{ left: 100, right: 30 }}>
-                <XAxis type="number" />
-                <YAxis dataKey="status" type="category" width={90} />
-                <Tooltip
-                  formatter={(value: number, name: string, props: any) => [
-                    `${value} projects (${props.payload.percentage}%)`,
-                    ''
-                  ]}
-                  labelFormatter={(label) => label}
-                />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {stats.byStatus.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-              No status data available
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
       {/* Vertical & Type Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Vertical Distribution */}
@@ -323,13 +315,23 @@ export function StatsProjects({ projects, statuses, types }: StatsProjectsProps)
           {stats.byQuarter.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats.byQuarter} margin={{ bottom: 20 }}>
-                <XAxis dataKey="quarter" />
+                <XAxis 
+                  dataKey="quarter" 
+                  angle={stats.byQuarter.length > 6 ? -45 : 0}
+                  textAnchor={stats.byQuarter.length > 6 ? "end" : "middle"}
+                  height={stats.byQuarter.length > 6 ? 70 : 30}
+                  tick={{ fontSize: 12 }}
+                />
                 <YAxis />
                 <Tooltip
                   formatter={(value: number) => [`${value} projects`, '']}
                   labelFormatter={(label) => label}
                 />
-                <Bar dataKey="count" fill={CHART_COLORS.chart1} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {stats.byQuarter.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLOR_ARRAY[index % CHART_COLOR_ARRAY.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -344,23 +346,26 @@ export function StatsProjects({ projects, statuses, types }: StatsProjectsProps)
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard
           title="Average Duration"
-          value={stats.duration.average > 0 ? `${stats.duration.average} days` : 'N/A'}
+          value={stats.duration.average > 0 ? stats.duration.average : 'N/A'}
           icon={Clock}
           subtitle={stats.duration.average > 0 ? 'Per project' : 'No data'}
+          isDuration={stats.duration.average > 0}
         />
         
         <StatsCard
           title="Longest Project"
-          value={stats.duration.longest ? `${stats.duration.longest.days} days` : 'N/A'}
+          value={stats.duration.longest ? stats.duration.longest.days : 'N/A'}
           icon={TrendingUp}
           subtitle={stats.duration.longest ? stats.duration.longest.name : 'No data'}
+          isDuration={!!stats.duration.longest}
         />
         
         <StatsCard
           title="Shortest Project"
-          value={stats.duration.shortest ? `${stats.duration.shortest.days} days` : 'N/A'}
+          value={stats.duration.shortest ? stats.duration.shortest.days : 'N/A'}
           icon={Calendar}
           subtitle={stats.duration.shortest ? stats.duration.shortest.name : 'No data'}
+          isDuration={!!stats.duration.shortest}
         />
       </div>
       

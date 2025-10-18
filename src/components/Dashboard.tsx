@@ -574,16 +574,16 @@ export function Dashboard({
                           </div>
                         </div>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setStatsOpen(true)}>
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          Stats
+                        </DropdownMenuItem>
                         {onSettings && (
                           <DropdownMenuItem onClick={onSettings}>
                             <Settings className="mr-2 h-4 w-4" />
                             Settings
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => setStatsOpen(true)}>
-                          <BarChart3 className="mr-2 h-4 w-4" />
-                          Stats
-                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={async () => {
@@ -685,16 +685,16 @@ export function Dashboard({
                       </div>
                     </div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setStatsOpen(true)}>
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Stats
+                    </DropdownMenuItem>
                     {onSettings && (
                       <DropdownMenuItem onClick={onSettings}>
                         <Settings className="mr-2 h-4 w-4" />
                         Settings
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => setStatsOpen(true)}>
-                      <BarChart3 className="mr-2 h-4 w-4" />
-                      Stats
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={async () => {

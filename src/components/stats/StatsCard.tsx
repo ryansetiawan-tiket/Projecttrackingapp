@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { LucideIcon } from 'lucide-react';
+import { formatDaysToMonthsDays } from '../../utils/statsCalculations';
 
 interface StatsCardProps {
   title: string;
@@ -14,6 +15,7 @@ interface StatsCardProps {
   };
   children?: ReactNode;
   className?: string;
+  isDuration?: boolean; // New prop to indicate duration formatting
 }
 
 export function StatsCard({
@@ -23,8 +25,14 @@ export function StatsCard({
   icon: Icon,
   trend,
   children,
-  className = ''
+  className = '',
+  isDuration = false
 }: StatsCardProps) {
+  // Format value if it's a duration (number of days)
+  const displayValue = isDuration && typeof value === 'number' 
+    ? formatDaysToMonthsDays(value)
+    : value;
+
   return (
     <Card className={className}>
       <CardHeader className="pb-2">
@@ -37,7 +45,7 @@ export function StatsCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
-          <div className="text-3xl font-bold">{value}</div>
+          <div className="text-3xl font-bold">{displayValue}</div>
           {subtitle && (
             <p className="text-xs text-muted-foreground">{subtitle}</p>
           )}

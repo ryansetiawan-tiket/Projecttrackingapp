@@ -6,6 +6,7 @@ import { BarChart3, FolderOpen, Image, Users, Calendar } from 'lucide-react';
 import { useProjects } from '../hooks/useProjects';
 import { useStatuses } from '../hooks/useStatuses';
 import { useTypes } from '../hooks/useTypes';
+import { useVerticals } from '../hooks/useVerticals';
 import { StatsOverview } from './stats/StatsOverview';
 import { StatsProjects } from './stats/StatsProjects';
 import { Skeleton } from './ui/skeleton';
@@ -19,7 +20,8 @@ export function StatsDialog({ open, onOpenChange }: StatsDialogProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const { projects, loading: projectsLoading } = useProjects();
   const { statuses } = useStatuses();
-  const { types } = useTypes();
+  const { types, typeColors } = useTypes();
+  const { verticals } = useVerticals();
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,11 +66,11 @@ export function StatsDialog({ open, onOpenChange }: StatsDialogProps) {
               ) : (
                 <>
                   <TabsContent value="overview" className="mt-6">
-                    <StatsOverview projects={projects} statuses={statuses} />
+                    <StatsOverview projects={projects} statuses={statuses} verticals={verticals} />
                   </TabsContent>
                   
                   <TabsContent value="projects" className="mt-6">
-                    <StatsProjects projects={projects} statuses={statuses} types={types} />
+                    <StatsProjects projects={projects} statuses={statuses} types={types} typeColors={typeColors} verticals={verticals} />
                   </TabsContent>
                   
                   <TabsContent value="assets" className="mt-6">

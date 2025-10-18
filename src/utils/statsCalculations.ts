@@ -33,6 +33,26 @@ export function calculateDaysBetween(start: string, end: string): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+// Format days into "x months x days" format
+export function formatDaysToMonthsDays(days: number): string {
+  if (days === 0) return '0 days';
+  
+  const months = Math.floor(days / 30);
+  const remainingDays = days % 30;
+  
+  if (months === 0) {
+    return `${days} ${days === 1 ? 'day' : 'days'}`;
+  }
+  
+  if (remainingDays === 0) {
+    return `${months} ${months === 1 ? 'month' : 'months'}`;
+  }
+  
+  const monthStr = `${months} ${months === 1 ? 'month' : 'months'}`;
+  const dayStr = `${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}`;
+  return `${monthStr} ${dayStr}`;
+}
+
 export function getDaysUntil(date: string): number {
   const now = new Date();
   const targetDate = new Date(date);
@@ -179,7 +199,7 @@ export function isProjectInQuarter(
 // ============================================================================
 
 export function getTotalAssetsForProject(project: Project): number {
-  const fileCount = project.assets?.length || 0;
+  const fileCount = project.actionable_items?.length || 0;
   const lightroomCount = project.lightroomAssets?.length || 0;
   const gdriveCount = project.gdriveAssets?.length || 0;
   return fileCount + lightroomCount + gdriveCount;
@@ -189,7 +209,7 @@ export function getTotalActionsForProject(project: Project): number {
   let total = 0;
   
   // Count actions from file assets
-  project.assets?.forEach(asset => {
+  project.actionable_items?.forEach(asset => {
     total += asset.actions?.length || 0;
   });
   

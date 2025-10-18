@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Project } from '../../types/project';
+import { Vertical } from '../../hooks/useVerticals';
 import { StatsCard } from './StatsCard';
 import { FolderOpen, Image, Users, CheckCircle, TrendingUp, Lightbulb, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -8,7 +9,6 @@ import { Progress } from '../ui/progress';
 import { 
   isProjectCompleted, 
   getTotalAssetsForProject,
-  getVerticalColor,
   calculatePercentage,
   isWithinLastNDays,
   getTotalActionsForProject
@@ -17,10 +17,17 @@ import {
 interface StatsOverviewProps {
   projects: Project[];
   statuses: any[];
+  verticals: Vertical[];
 }
 
-export function StatsOverview({ projects, statuses }: StatsOverviewProps) {
+export function StatsOverview({ projects, statuses, verticals }: StatsOverviewProps) {
   const stats = useMemo(() => {
+    // Helper function to get vertical color
+    const getVerticalColor = (verticalName: string) => {
+      const vertical = verticals.find(v => v.name === verticalName);
+      return vertical?.color || 'hsl(0, 0%, 50%)';
+    };
+    
     // Total Projects
     const totalProjects = projects.length;
     
@@ -92,8 +99,8 @@ export function StatsOverview({ projects, statuses }: StatsOverviewProps) {
     const assetsAdded = projects.reduce((sum, project) => {
       let count = 0;
       
-      // File assets
-      project.assets?.forEach(asset => {
+      // File assets (actionable items)
+      project.actionable_items?.forEach(asset => {
         if (asset.created_at && isWithinLastNDays(asset.created_at, 7)) {
           count++;
         }
@@ -121,7 +128,7 @@ export function StatsOverview({ projects, statuses }: StatsOverviewProps) {
       
       // Count completed actions from all asset types
       const allAssets = [
-        ...(project.assets || []),
+        ...(project.actionable_items || []),
         ...(project.lightroomAssets || []),
         ...(project.gdriveAssets || [])
       ];
@@ -151,7 +158,7 @@ export function StatsOverview({ projects, statuses }: StatsOverviewProps) {
         actionsCompleted
       }
     };
-  }, [projects, statuses]);
+  }, [projects, statuses, verticals]);
   
   return (
     <div className="space-y-6">
