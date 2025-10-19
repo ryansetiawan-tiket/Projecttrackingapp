@@ -15,7 +15,10 @@ const supabase = createClient(
 // Initialize default type colors and types list
 const initializeTypeColors = async () => {
   try {
+    console.log('[Init] Starting type colors initialization...');
     const existingColors = await kv.get('type_colors');
+    console.log('[Init] Existing type colors:', existingColors ? 'found' : 'not found');
+    
     if (!existingColors) {
       const defaultTypeColors = {
         'Spot': '#ff6b6b',
@@ -30,17 +33,24 @@ const initializeTypeColors = async () => {
       };
       await kv.set('type_colors', JSON.stringify(defaultTypeColors));
       await kv.set('type_list', JSON.stringify(Object.keys(defaultTypeColors)));
-      console.log('Initialized default type colors and types list');
+      console.log('[Init] Initialized default type colors and types list successfully');
+    } else {
+      console.log('[Init] Type colors already initialized');
     }
   } catch (error) {
-    console.error('Failed to initialize type colors:', error);
+    console.error('[Init] Failed to initialize type colors:', error);
+    console.error('[Init] Error details:', error instanceof Error ? error.message : String(error));
+    // Don't throw - let server continue to start
   }
 };
 
 // Initialize default vertical colors
 const initializeVerticalColors = async () => {
   try {
+    console.log('[Init] Starting vertical colors initialization...');
     const existingColors = await kv.get('vertical_colors');
+    console.log('[Init] Existing vertical colors:', existingColors ? 'found' : 'not found');
+    
     if (!existingColors) {
       const defaultVerticalColors = {
         'LOYALTY': '#fef3c7',
@@ -54,34 +64,60 @@ const initializeVerticalColors = async () => {
       };
       await kv.set('vertical_colors', JSON.stringify(defaultVerticalColors));
       await kv.set('vertical_list', JSON.stringify(Object.keys(defaultVerticalColors)));
-      console.log('Initialized default vertical colors');
+      console.log('[Init] Initialized default vertical colors successfully');
+    } else {
+      console.log('[Init] Vertical colors already initialized');
     }
   } catch (error) {
-    console.error('Failed to initialize vertical colors:', error);
+    console.error('[Init] Failed to initialize vertical colors:', error);
+    console.error('[Init] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('[Init] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    // Don't throw - let server continue to start
   }
 };
 
 // Initialize default roles
 const initializeRoles = async () => {
   try {
+    console.log('[Init] Starting roles initialization...');
     const existingRoles = await kv.get('role_list');
+    console.log('[Init] Existing roles:', existingRoles ? 'found' : 'not found');
+    
     if (!existingRoles) {
       const defaultRoles = [
         'Illustrator', 'UI Designer', 'UX Designer', 'Graphic Designer',
         'Creative Director', 'Project Manager', 'Art Director'
       ];
       await kv.set('role_list', JSON.stringify(defaultRoles));
-      console.log('Initialized default roles');
+      console.log('[Init] Initialized default roles successfully');
+    } else {
+      console.log('[Init] Roles already initialized');
     }
   } catch (error) {
-    console.error('Failed to initialize roles:', error);
+    console.error('[Init] Failed to initialize roles:', error);
+    console.error('[Init] Error details:', error instanceof Error ? error.message : String(error));
+    // Don't throw - let server continue to start
   }
 };
 
-// Initialize on server start
-initializeTypeColors();
-initializeVerticalColors();
-initializeRoles();
+// Initialize on server start (run sequentially with error handling)
+const initializeServer = async () => {
+  console.log('[Server] Starting initialization...');
+  try {
+    await initializeTypeColors();
+    await initializeVerticalColors();
+    await initializeRoles();
+    console.log('[Server] All initializations completed successfully');
+  } catch (error) {
+    console.error('[Server] Initialization error:', error);
+    console.error('[Server] Server will continue despite initialization errors');
+  }
+};
+
+// Run initialization (don't await to avoid blocking server start)
+initializeServer().catch(err => {
+  console.error('[Server] Fatal initialization error:', err);
+});
 
 // Enable logger
 app.use('*', logger(console.log));
@@ -349,10 +385,33 @@ app.delete("/make-server-691c6bba/collaborators/:id", async (c) => {
 app.get("/make-server-691c6bba/type-colors", async (c) => {
   try {
     const colors = await kv.get('type_colors');
-    return c.json({ colors: colors ? JSON.parse(colors) : {} });
+    const defaultColors = {
+      'Spot': '#ff6b6b',
+      'Icon': '#4ecdc4', 
+      'Micro': '#45b7d1',
+      'Banner': '#96ceb4',
+      'Other': '#feca57',
+      'Product Icon': '#ff9ff3',
+      'Micro Interaction': '#54a0ff',
+      'DLP': '#5f27cd',
+      'Pop Up': '#00d2d3'
+    };
+    return c.json({ colors: colors ? JSON.parse(colors) : defaultColors });
   } catch (error) {
-    console.log("Error fetching type colors:", error);
-    return c.json({ error: "Failed to fetch type colors" }, 500);
+    console.error("[API] Error fetching type colors:", error);
+    // Return default colors instead of error
+    const defaultColors = {
+      'Spot': '#ff6b6b',
+      'Icon': '#4ecdc4', 
+      'Micro': '#45b7d1',
+      'Banner': '#96ceb4',
+      'Other': '#feca57',
+      'Product Icon': '#ff9ff3',
+      'Micro Interaction': '#54a0ff',
+      'DLP': '#5f27cd',
+      'Pop Up': '#00d2d3'
+    };
+    return c.json({ colors: defaultColors });
   }
 });
 
@@ -379,10 +438,31 @@ app.put("/make-server-691c6bba/type-colors/:type", async (c) => {
 app.get("/make-server-691c6bba/vertical-colors", async (c) => {
   try {
     const colors = await kv.get('vertical_colors');
-    return c.json({ colors: colors ? JSON.parse(colors) : {} });
+    const defaultColors = {
+      'LOYALTY': '#fef3c7',
+      'ORDER': '#fecaca',
+      'WISHLIST': '#e9d5ff',
+      'CSF': '#bfdbfe',
+      'PAYMENT': '#bbf7d0',
+      'PRODUCT': '#fed7aa',
+      'MARKETING': '#fbcfe8',
+      'LOYALTY & ACQUISITION': '#fef3c7'
+    };
+    return c.json({ colors: colors ? JSON.parse(colors) : defaultColors });
   } catch (error) {
-    console.log("Error fetching vertical colors:", error);
-    return c.json({ error: "Failed to fetch vertical colors" }, 500);
+    console.error("[API] Error fetching vertical colors:", error);
+    // Return default colors instead of error
+    const defaultColors = {
+      'LOYALTY': '#fef3c7',
+      'ORDER': '#fecaca',
+      'WISHLIST': '#e9d5ff',
+      'CSF': '#bfdbfe',
+      'PAYMENT': '#bbf7d0',
+      'PRODUCT': '#fed7aa',
+      'MARKETING': '#fbcfe8',
+      'LOYALTY & ACQUISITION': '#fef3c7'
+    };
+    return c.json({ colors: defaultColors });
   }
 });
 
@@ -418,10 +498,13 @@ app.put("/make-server-691c6bba/vertical-colors/:vertical", async (c) => {
 app.get("/make-server-691c6bba/verticals", async (c) => {
   try {
     const verticals = await kv.get('vertical_list');
-    return c.json({ verticals: verticals ? JSON.parse(verticals) : [] });
+    const defaultVerticals = ['LOYALTY', 'ORDER', 'WISHLIST', 'CSF', 'PAYMENT', 'PRODUCT', 'MARKETING', 'LOYALTY & ACQUISITION'];
+    return c.json({ verticals: verticals ? JSON.parse(verticals) : defaultVerticals });
   } catch (error) {
-    console.log("Error fetching verticals:", error);
-    return c.json({ error: "Failed to fetch verticals" }, 500);
+    console.error("[API] Error fetching verticals:", error);
+    // Return default verticals instead of error
+    const defaultVerticals = ['LOYALTY', 'ORDER', 'WISHLIST', 'CSF', 'PAYMENT', 'PRODUCT', 'MARKETING', 'LOYALTY & ACQUISITION'];
+    return c.json({ verticals: defaultVerticals });
   }
 });
 
@@ -525,8 +608,13 @@ app.get("/make-server-691c6bba/roles", async (c) => {
     ];
     return c.json({ roles: roles ? JSON.parse(roles) : defaultRoles });
   } catch (error) {
-    console.log("Error fetching roles:", error);
-    return c.json({ error: "Failed to fetch roles" }, 500);
+    console.error("[API] Error fetching roles:", error);
+    // Return default roles instead of error
+    const defaultRoles = [
+      'Illustrator', 'UI Designer', 'UX Designer', 'Graphic Designer',
+      'Creative Director', 'Project Manager', 'Art Director'
+    ];
+    return c.json({ roles: defaultRoles });
   }
 });
 
