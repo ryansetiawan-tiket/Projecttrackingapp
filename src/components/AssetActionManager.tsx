@@ -5,8 +5,7 @@ import { Input } from './ui/input';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { Plus, X, Edit2, Check, Workflow as WorkflowIcon, Trash2, RotateCcw, GripVertical } from 'lucide-react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useDrag, useDrop } from 'react-dnd';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
@@ -362,14 +361,13 @@ export function AssetActionManager({ actions, onChange, readOnly = false, compac
         {/* Action Checkboxes & Add Button - with hover controls */}
         <div className="group/actions">
           {/* Actions + Add More in 2-column grid (6 actions per column, max 12) */}
-          <DndProvider backend={HTML5Backend}>
-            <div 
-              className={`${
-                gridLayout 
-                  ? 'columns-2 gap-3 space-y-2.5' 
-                  : 'space-y-2.5'
-              } ${readOnly ? 'pointer-events-none' : ''}`}
-            >
+          <div 
+            className={`${
+              gridLayout 
+                ? 'columns-2 gap-3 space-y-2.5' 
+                : 'space-y-2.5'
+            } ${readOnly ? 'pointer-events-none' : ''}`}
+          >
               {/* Existing Actions - with Drag & Drop */}
               {actions.map((action, index) => (
                 <DraggableActionItem
@@ -511,8 +509,7 @@ export function AssetActionManager({ actions, onChange, readOnly = false, compac
                 </Popover>
               </div>
             )}
-            </div>
-          </DndProvider>
+          </div>
           
           {/* Utility Buttons - Separate row, right-aligned, hover-only */}
           {!readOnly && actions.length > 0 && (

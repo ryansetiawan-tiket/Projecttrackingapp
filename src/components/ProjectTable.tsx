@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { Skeleton } from './ui/skeleton';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Project, Collaborator } from '../types/project';
@@ -9,6 +11,9 @@ import { ProjectCard } from './ProjectCard';
 import { ProjectGroup } from './ProjectGroup';
 import { useColors } from './ColorContext';
 import { useStatusContext } from './StatusContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useColumnOrder } from '../hooks/useColumnOrder';
+import { DraggableTableHeader } from './project-table/DraggableTableHeader';
 import { getQuarterPattern } from '../utils/quarterUtils';
 import { sortProjectsByUrgency, getMostUrgentPriority, getDaysUntilDeadline } from '../utils/sortingUtils';
 import { ProjectTableRow } from './project-table/renderProjectRow';
@@ -127,6 +132,18 @@ export function ProjectTable({
 }: ProjectTableProps) {
   const { verticalColors } = useColors();
   const { statuses, getStatusColor: getStatusColorFromContext, isManualStatus } = useStatusContext();
+  const { accessToken } = useAuth();
+  
+  // 🆕 Column Order Management (v2.4.0)
+  const {
+    columns,
+    reorderColumn,
+    isLoading: isLoadingColumns,
+  } = useColumnOrder(accessToken);
+  
+  // Filter visible columns for rendering
+  const visibleColumns = columns.filter(col => col.visible);
+  
   const [expandedAssets, setExpandedAssets] = useState<Set<string>>(new Set());
   const [activeAssetPopover, setActiveAssetPopover] = useState<string | null>(null);
   const [activeDatePopover, setActiveDatePopover] = useState<string | null>(null);
@@ -635,6 +652,16 @@ export function ProjectTable({
     return hexToRgba(statusColor, 0.12);
   };
 
+  // Show loading skeleton while columns are loading
+  if (isLoadingColumns) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Mobile Grouped Card View - Hidden on desktop */}
@@ -677,6 +704,7 @@ export function ProjectTable({
 
       {/* Desktop Table View - Hidden on mobile */}
       <div className="hidden md:block space-y-4">
+        
         {/* Render based on group mode */}
         {groupByMode === 'status' ? (
           // GROUP BY STATUS MODE
@@ -770,14 +798,48 @@ export function ProjectTable({
                 <div className="overflow-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[420px] min-w-[420px] max-w-[420px] text-left pl-8">Project</TableHead>
-                        <TableHead className="w-[140px] min-w-[140px] max-w-[140px] text-center">Status</TableHead>
-                        <TableHead className="w-[160px] min-w-[160px] max-w-[160px] text-center">Collaborators</TableHead>
-                        <TableHead className="w-[120px] min-w-[120px] max-w-[120px] text-center">Start Date</TableHead>
-                        <TableHead className="w-[140px] min-w-[140px] max-w-[140px] text-center">Due Date</TableHead>
-                        <TableHead className="w-[100px] min-w-[100px] max-w-[100px] text-center">Links</TableHead>
-                        <TableHead className="w-[140px] min-w-[140px] max-w-[140px] text-center">Deliverables</TableHead>
+                      <TableRow className="group">
+                        {visibleColumns.map((column, index) => {
+                          // Map column IDs to widths and styles
+                          const getColumnStyles = () => {
+                            switch (column.id) {
+                              case 'projectName':
+                                return 'w-[420px] min-w-[420px] max-w-[420px] text-left pl-8';
+                              case 'status':
+                                return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                              case 'type':
+                                return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                              case 'vertical':
+                                return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                              case 'deliverables':
+                                return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                              case 'assetsProgress':
+                                return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                              case 'startDate':
+                                return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                              case 'endDate':
+                                return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                              case 'collaborators':
+                                return 'w-[160px] min-w-[160px] max-w-[160px] text-center';
+                              case 'links':
+                                return 'w-[100px] min-w-[100px] max-w-[100px] text-center';
+                              default:
+                                return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                            }
+                          };
+
+                          return (
+                            <DraggableTableHeader
+                              key={column.id}
+                              column={column}
+                              index={index}
+                              onReorder={reorderColumn}
+                              className={getColumnStyles()}
+                            >
+                              {column.label}
+                            </DraggableTableHeader>
+                          );
+                        })}
                         {!isPublicView && <TableHead className="w-[50px] min-w-[50px] max-w-[50px]"></TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -889,6 +951,7 @@ export function ProjectTable({
                   project={project}
                   collaborators={collaborators}
                   verticalColors={verticalColors}
+                  columns={visibleColumns}
                   config={{
                     indentLevel: 'status-subgroup',
                     showVerticalBadge: true,
@@ -993,15 +1056,48 @@ export function ProjectTable({
                       <div className="overflow-auto">
                         <Table>
                           <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[420px] min-w-[420px] max-w-[420px]">Project</TableHead>
-                              <TableHead className="w-[140px] min-w-[140px] max-w-[140px]">Status</TableHead>
-                              <TableHead className="w-[160px] min-w-[160px] max-w-[160px]">Collaborators</TableHead>
-                              <TableHead className="w-[120px] min-w-[120px] max-w-[120px]">Start Date</TableHead>
-                              <TableHead className="w-[140px] min-w-[140px] max-w-[140px]">Due Date</TableHead>
-                              <TableHead className="w-[100px] min-w-[100px] max-w-[100px]">Links</TableHead>
-                              <TableHead className="w-[140px] min-w-[140px] max-w-[140px]">Deliverables</TableHead>
-                              <TableHead className="w-[50px] min-w-[50px] max-w-[50px]"></TableHead>
+                            <TableRow className="group">
+                              {columns.map((column, index) => {
+                                const getColumnStyles = () => {
+                                  switch (column.id) {
+                                    case 'projectName':
+                                      return 'w-[420px] min-w-[420px] max-w-[420px] text-left pl-8';
+                                    case 'status':
+                                      return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                                    case 'type':
+                                      return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                                    case 'vertical':
+                                      return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                                    case 'deliverables':
+                                      return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                                    case 'assetsProgress':
+                                      return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                                    case 'startDate':
+                                      return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                                    case 'endDate':
+                                      return 'w-[140px] min-w-[140px] max-w-[140px] text-center';
+                                    case 'collaborators':
+                                      return 'w-[160px] min-w-[160px] max-w-[160px] text-center';
+                                    case 'links':
+                                      return 'w-[100px] min-w-[100px] max-w-[100px] text-center';
+                                    default:
+                                      return 'w-[120px] min-w-[120px] max-w-[120px] text-center';
+                                  }
+                                };
+
+                                return (
+                                  <DraggableTableHeader
+                                    key={column.id}
+                                    column={column}
+                                    index={index}
+                                    onReorder={reorderColumn}
+                                    className={getColumnStyles()}
+                                  >
+                                    {column.label}
+                                  </DraggableTableHeader>
+                                );
+                              })}
+                              {!isPublicView && <TableHead className="w-[50px] min-w-[50px] max-w-[50px]"></TableHead>}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1102,6 +1198,7 @@ export function ProjectTable({
                                       project={project}
                                       collaborators={collaborators}
                                       verticalColors={verticalColors}
+                                      columns={visibleColumns}
                                       config={{
                                         indentLevel: 'status-subgroup',
                                         showVerticalBadge: false,

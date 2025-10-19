@@ -10,7 +10,7 @@ import { Badge } from './ui/badge';
 import { Checkbox } from './ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
-import { Plus, Trash2, ChevronDown, Calendar, User, CheckSquare, Users, X, Edit2, Save, Workflow as WorkflowIcon, Building2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Calendar, User, CheckSquare, Users, X, Edit2, Save, Workflow as WorkflowIcon, Building2, GripVertical, Copy } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
@@ -25,8 +25,8 @@ import { Clock, Target, AlertCircle } from 'lucide-react';
 import { AssetActionManager } from './AssetActionManager';
 import { calculateAssetProgress, getProgressColorValue } from '../utils/taskProgress';
 import { getAllTeamMemberIds, getSubteamMemberIds, getCollaboratorsFromIds } from '../utils/teamUtils';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { useDrag, useDrop } from 'react-dnd';
+import { toast } from 'sonner@2.0.3';
 
 interface ActionableItemManagerProps {
   actionableItems: ActionableItem[];
@@ -634,6 +634,61 @@ export function ActionableItemManager({
     onActionableItemsChange(updatedItems);
   };
 
+  const handleDuplicateActionableItem = (id: string) => {
+    // Find the item to duplicate
+    const itemToDuplicate = localItems.find(item => item.id === id);
+    if (!itemToDuplicate) return;
+
+    // Create a deep copy of the item with new ID and "(Copy) " prefix
+    const duplicatedItem: ActionableItem = {
+      ...itemToDuplicate,
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`, // Generate unique ID
+      title: `(Copy) ${itemToDuplicate.title}`,
+      // Deep copy actions array to avoid reference issues
+      actions: itemToDuplicate.actions?.map(action => ({
+        ...action,
+        id: `action_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        completed: action.completed // Preserve completion status
+      })) || [],
+      // Deep copy collaborators array
+      collaborators: itemToDuplicate.collaborators?.map(collab => ({ ...collab })) || [],
+      // Reset timestamps
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Preserve all other fields
+      is_completed: itemToDuplicate.is_completed,
+      status: itemToDuplicate.status,
+      type: itemToDuplicate.type,
+      illustration_type: itemToDuplicate.illustration_type,
+      start_date: itemToDuplicate.start_date,
+      due_date: itemToDuplicate.due_date
+    };
+
+    // Find the index of the original item
+    const originalIndex = localItems.findIndex(item => item.id === id);
+    
+    // Insert duplicated item right after the original
+    const updatedItems = [...localItems];
+    updatedItems.splice(originalIndex + 1, 0, duplicatedItem);
+    
+    // ⚡ OPTIMISTIC: Update local state immediately
+    setLocalItems(updatedItems);
+    
+    // Sync to parent immediately
+    onActionableItemsChange(updatedItems);
+
+    // Auto-expand the duplicated item
+    setExpandedAssetId(duplicatedItem.id);
+
+    // Ensure all collaborators are in project
+    duplicatedItem.collaborators?.forEach(collab => {
+      ensureCollaboratorInProject(collab);
+    });
+
+    // Show success notification
+    toast.success(`Asset duplicated successfully: "${duplicatedItem.title}"`);
+  };
+
   const ensureCollaboratorInProject = (collaborator: ProjectCollaborator) => {
     // Check if collaborator is already in project - use both ID and name for safety
     const isInProject = projectCollaborators.some(c => 
@@ -1105,6 +1160,18 @@ export function ActionableItemManager({
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleDuplicateActionableItem(item.id);
+                          }}
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-600"
+                          title="Duplicate asset"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleDeleteActionableItem(item.id);
                           }}
                           className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
@@ -1279,27 +1346,25 @@ export function ActionableItemManager({
                     
                     {/* Display added actions - 2-Column Checkbox Grid with Drag & Drop */}
                     {editFormData.actions && editFormData.actions.length > 0 && (
-                      <DndProvider backend={HTML5Backend}>
-                        <div 
-                          className="grid grid-cols-2 gap-2 mb-2"
-                          style={{
-                            gridAutoFlow: 'column',
-                            gridTemplateRows: `repeat(${Math.ceil(editFormData.actions.length / 2)}, auto)`
-                          }}
-                        >
-                          {editFormData.actions.map((action, index) => (
-                            <DraggableActionItem
-                              key={action.id}
-                              action={action}
-                              index={index}
-                              onMove={handleReorderEditActions}
-                              onRemove={removeActionFromEditForm}
-                              onToggle={handleToggleEditAction}
-                              idPrefix="edit-action"
-                            />
-                          ))}
-                        </div>
-                      </DndProvider>
+                      <div 
+                        className="grid grid-cols-2 gap-2 mb-2"
+                        style={{
+                          gridAutoFlow: 'column',
+                          gridTemplateRows: `repeat(${Math.ceil(editFormData.actions.length / 2)}, auto)`
+                        }}
+                      >
+                        {editFormData.actions.map((action, index) => (
+                          <DraggableActionItem
+                            key={action.id}
+                            action={action}
+                            index={index}
+                            onMove={handleReorderEditActions}
+                            onRemove={removeActionFromEditForm}
+                            onToggle={handleToggleEditAction}
+                            idPrefix="edit-action"
+                          />
+                        ))}
+                      </div>
                     )}
 
                     <div className="flex gap-2">
@@ -2045,27 +2110,25 @@ export function ActionableItemManager({
                     
                     {/* Display added actions - 2-Column Checkbox Grid with Drag & Drop */}
                     {formData.actions && formData.actions.length > 0 && (
-                      <DndProvider backend={HTML5Backend}>
-                        <div 
-                          className="grid grid-cols-2 gap-2 mb-2"
-                          style={{
-                            gridAutoFlow: 'column',
-                            gridTemplateRows: `repeat(${Math.ceil(formData.actions.length / 2)}, auto)`
-                          }}
-                        >
-                          {formData.actions.map((action, index) => (
-                            <DraggableActionItem
-                              key={action.id}
-                              action={action}
-                              index={index}
-                              onMove={handleReorderFormActions}
-                              onRemove={removeActionFromForm}
-                              onToggle={handleToggleFormAction}
-                              idPrefix="new-action"
-                            />
-                          ))}
-                        </div>
-                      </DndProvider>
+                      <div 
+                        className="grid grid-cols-2 gap-2 mb-2"
+                        style={{
+                          gridAutoFlow: 'column',
+                          gridTemplateRows: `repeat(${Math.ceil(formData.actions.length / 2)}, auto)`
+                        }}
+                      >
+                        {formData.actions.map((action, index) => (
+                          <DraggableActionItem
+                            key={action.id}
+                            action={action}
+                            index={index}
+                            onMove={handleReorderFormActions}
+                            onRemove={removeActionFromForm}
+                            onToggle={handleToggleFormAction}
+                            idPrefix="new-action"
+                          />
+                        ))}
+                      </div>
                     )}
 
                     <div className="flex gap-2">

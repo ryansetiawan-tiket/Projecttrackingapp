@@ -136,6 +136,25 @@ export const premadeIcons: PremadeIcon[] = [
       <circle cx="23" cy="63" r="20" fill="#F06A6A"/>
       <circle cx="77" cy="63" r="20" fill="#F06A6A"/>
     </svg>`
+  },
+  {
+    id: 'confluence',
+    name: 'Confluence',
+    category: 'Documentation',
+    svg: `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <defs>
+        <linearGradient id="confGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#0052CC"/>
+          <stop offset="100%" style="stop-color:#2684FF"/>
+        </linearGradient>
+        <linearGradient id="confGrad2" x1="100%" y1="0%" x2="0%" y2="0%">
+          <stop offset="0%" style="stop-color:#0052CC"/>
+          <stop offset="100%" style="stop-color:#2684FF"/>
+        </linearGradient>
+      </defs>
+      <path d="M3.6 17.8c-.3.5-.5.9-.7 1.3-.2.4 0 .9.4 1.2l2.8 1.9c.2.1.4.2.6.2.2 0 .4-.1.6-.2.3-.2.5-.4.6-.7.1-.3.4-1.1.9-2 1.3-2.4 4-3.2 6.4-1.9l4.5 2.5c.8.4 1.7.1 2.2-.6l2.5-4.6c.4-.8.1-1.7-.6-2.2l-4.5-2.5c-4.3-2.4-9.7-.9-12.1 3.4-.8 1.5-1.5 2.8-2.1 3.9-.3.5-.5.8-.7 1.3z" fill="url(#confGrad1)"/>
+      <path d="M20.4 6.2c.3-.5.5-.9.7-1.3.2-.4 0-.9-.4-1.2L18 1.8c-.2-.1-.4-.2-.6-.2-.2 0-.4.1-.6.2-.3.2-.5.4-.6.7-.1.3-.4 1.1-.9 2-1.3 2.4-4 3.2-6.4 1.9L4.4 3.9c-.8-.4-1.7-.1-2.2.6L-.3 9.1c-.4.8-.1 1.7.6 2.2l4.5 2.5c4.3 2.4 9.7.9 12.1-3.4.8-1.5 1.5-2.8 2.1-3.9.3-.5.5-.8.7-1.3z" fill="url(#confGrad2)"/>
+    </svg>`
   }
 ];
 

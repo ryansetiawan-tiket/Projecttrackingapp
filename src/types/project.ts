@@ -166,3 +166,71 @@ export interface Workflow {
   created_at: string;
   updated_at: string;
 }
+
+// ========================================
+// TABLE COLUMN ORDERING (v2.4.0)
+// ========================================
+
+export type TableColumnId = 
+  | 'projectName'    // LOCKED - always first
+  | 'status'
+  | 'deliverables'
+  | 'startDate'
+  | 'endDate'
+  | 'collaborators'
+  | 'links';
+
+export interface TableColumn {
+  id: TableColumnId;
+  label: string;
+  locked?: boolean;        // true for projectName
+  defaultOrder: number;    // Original position (0-6)
+  visible: boolean;        // Future: column visibility toggle
+  width?: string;          // Optional: custom width
+}
+
+export const DEFAULT_TABLE_COLUMNS: TableColumn[] = [
+  { 
+    id: 'projectName', 
+    label: 'Project', 
+    locked: true, 
+    defaultOrder: 0, 
+    visible: true 
+  },
+  { 
+    id: 'status', 
+    label: 'Status', 
+    defaultOrder: 1, 
+    visible: true 
+  },
+  { 
+    id: 'collaborators', 
+    label: 'Collaborators', 
+    defaultOrder: 2, 
+    visible: true 
+  },
+  { 
+    id: 'startDate', 
+    label: 'Start Date', 
+    defaultOrder: 3, 
+    visible: true 
+  },
+  { 
+    id: 'endDate', 
+    label: 'Due Date', 
+    defaultOrder: 4, 
+    visible: true 
+  },
+  { 
+    id: 'links', 
+    label: 'Links', 
+    defaultOrder: 5, 
+    visible: true 
+  },
+  { 
+    id: 'deliverables', 
+    label: 'Deliverables', 
+    defaultOrder: 6, 
+    visible: true 
+  },
+];

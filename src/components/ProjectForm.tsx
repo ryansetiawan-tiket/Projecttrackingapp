@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Save, Trash2, Copy, X, Plus, Calendar, Users, Tag, Link, FileText, Briefcase, ArrowUpDown, Link as LinkIcon } from 'lucide-react';
 import { Project, Collaborator, ProjectFormData, ProjectStatus, ProjectType, ProjectCollaborator, ActionableItem, ProjectLink } from '../types/project';
 import { HSLColorPicker } from './HSLColorPicker';
@@ -21,6 +22,7 @@ import { useColors } from './ColorContext';
 import { getContrastColor } from '../utils/colorUtils';
 import { toast } from 'sonner@2.0.3';
 import { useLinkLabels, type LinkLabel } from '../hooks/useLinkLabels';
+import { premadeIcons, type PremadeIcon } from '../utils/premadeIcons';
 
 export interface ProjectFormProps {
   initialData: ProjectFormData;
@@ -158,6 +160,21 @@ export const ProjectForm = ({
     setNewLinkLabel(linkLabel.label);
     setShowLinkLabelPicker(false);
   };
+  
+  const selectPresetIcon = (preset: PremadeIcon) => {
+    // Create a temporary link label from preset for consistency
+    const tempLinkLabel: LinkLabel = {
+      id: preset.id,
+      label: preset.name,
+      icon_type: 'svg',
+      icon_value: preset.svg,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    setSelectedLinkLabel(tempLinkLabel);
+    setNewLinkLabel(preset.name);
+    setShowLinkLabelPicker(false);
+  };
 
   const renderLinkLabelIcon = (linkLabel: LinkLabel) => {
     if (linkLabel.icon_type === 'emoji') {
@@ -172,6 +189,15 @@ export const ProjectForm = ({
     } else {
       return <LinkIcon className="h-5 w-5" />;
     }
+  };
+  
+  const renderPresetIcon = (preset: PremadeIcon) => {
+    return (
+      <div 
+        className="w-5 h-5 flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
+        dangerouslySetInnerHTML={{ __html: preset.svg }}
+      />
+    );
   };
 
   const removeLink = (linkId: string) => {
@@ -657,32 +683,75 @@ export const ProjectForm = ({
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
-              ) : showLinkLabelPicker && linkLabels.length > 0 ? (
+              ) : showLinkLabelPicker ? (
                 <div className="space-y-2">
-                  <div className="max-h-[300px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
-                    <div className="p-2 space-y-1">
-                      {linkLabels.map((linkLabel) => (
-                        <button
-                          key={linkLabel.id}
-                          type="button"
-                          onClick={() => selectLinkLabel(linkLabel)}
-                          className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
-                        >
-                          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
-                            {renderLinkLabelIcon(linkLabel)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium">{linkLabel.label}</div>
-                            {linkLabel.placeholder && (
-                              <div className="text-xs text-muted-foreground truncate">
-                                {linkLabel.placeholder}
+                  <Tabs defaultValue="presets" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="presets">Preset Icons</TabsTrigger>
+                      <TabsTrigger value="saved">Saved Labels</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="presets" className="mt-2">
+                      <div className="max-h-[400px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
+                        <div className="p-3 grid grid-cols-3 gap-2">
+                          {premadeIcons.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => selectPresetIcon(preset)}
+                              className="flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
+                            >
+                              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
+                                {renderPresetIcon(preset)}
                               </div>
-                            )}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{preset.name}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {preset.category}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="saved" className="mt-2">
+                      {linkLabels.length > 0 ? (
+                        <div className="max-h-[400px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
+                          <div className="p-2 space-y-1">
+                            {linkLabels.map((linkLabel) => (
+                              <button
+                                key={linkLabel.id}
+                                type="button"
+                                onClick={() => selectLinkLabel(linkLabel)}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
+                              >
+                                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
+                                  {renderLinkLabelIcon(linkLabel)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium">{linkLabel.label}</div>
+                                  {linkLabel.placeholder && (
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {linkLabel.placeholder}
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
                           </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center border-2 border-primary/50 rounded-lg bg-background">
+                          <LinkIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">No saved labels yet</p>
+                          <p className="text-xs text-muted-foreground mt-1">Create custom labels in Settings</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                  
                   <div className="flex gap-2">
                     <Button
                       type="button"

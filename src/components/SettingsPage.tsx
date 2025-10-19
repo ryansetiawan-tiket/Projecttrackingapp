@@ -17,6 +17,7 @@ import { ActionPresetManager } from './ActionPresetManager';
 import { WorkflowManager } from './WorkflowManager-new';
 import { AdminProfileManager } from './AdminProfileManager';
 import { AnnouncementManager } from './AnnouncementManager';
+import { TableColumnOrderManager } from './TableColumnOrderManager';
 import { useStatuses } from '../hooks/useStatuses';
 import { useActionSettings } from './ActionSettingsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -251,62 +252,68 @@ export function SettingsPage({
           </TabsContent>
 
           <TabsContent value="app-settings" className="mt-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Sliders className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <CardTitle>App Settings</CardTitle>
-                    <CardDescription className="mt-1">
-                      Customize the application title and branding
-                    </CardDescription>
+            <div className="space-y-6">
+              {/* Application Title */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Sliders className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <CardTitle>App Settings</CardTitle>
+                      <CardDescription className="mt-1">
+                        Customize the application title and branding
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Admin-Only Notice */}
-                {!isAdmin && (
-                  <div className="rounded-lg bg-muted/50 border border-border p-4">
-                    <p className="text-sm text-muted-foreground">
-                      🔒 Only admins can modify app settings
-                    </p>
-                  </div>
-                )}
-                
-                {/* App Title */}
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="app-title">Application Title</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      This title appears in the dashboard header
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      id="app-title"
-                      type="text"
-                      placeholder="Ryan Setiawan's Tracker"
-                      value={appTitle}
-                      onChange={(e) => setAppTitle(e.target.value)}
-                      disabled={!isAdmin || appSettingsLoading}
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={handleSaveAppTitle}
-                      disabled={!isAdmin || appSettingsLoading || appTitle === appSettings.title}
-                    >
-                      {appSettingsLoading ? 'Saving...' : 'Save'}
-                    </Button>
-                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Admin-Only Notice */}
+                  {!isAdmin && (
+                    <div className="rounded-lg bg-muted/50 border border-border p-4">
+                      <p className="text-sm text-muted-foreground">
+                        🔒 Only admins can modify app settings
+                      </p>
+                    </div>
+                  )}
                   
-                  {/* Preview */}
-                  <div className="rounded-lg bg-muted/30 border border-border p-4">
-                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                    <h2 className="text-xl font-semibold text-foreground">{appTitle || 'App Title'}</h2>
+                  {/* App Title */}
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="app-title">Application Title</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        This title appears in the dashboard header
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id="app-title"
+                        type="text"
+                        placeholder="Ryan Setiawan's Tracker"
+                        value={appTitle}
+                        onChange={(e) => setAppTitle(e.target.value)}
+                        disabled={!isAdmin || appSettingsLoading}
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={handleSaveAppTitle}
+                        disabled={!isAdmin || appSettingsLoading || appTitle === appSettings.title}
+                      >
+                        {appSettingsLoading ? 'Saving...' : 'Save'}
+                      </Button>
+                    </div>
+                    
+                    {/* Preview */}
+                    <div className="rounded-lg bg-muted/30 border border-border p-4">
+                      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                      <h2 className="text-xl font-semibold text-foreground">{appTitle || 'App Title'}</h2>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Table Column Order */}
+              <TableColumnOrderManager />
+            </div>
           </TabsContent>
 
           <TabsContent value="teams" className="mt-6">

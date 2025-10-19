@@ -781,23 +781,21 @@ export function Dashboard({
               {/* Desktop Controls - Only on desktop */}
               {!isMobile && (
                 <>
-                  {/* Group By Dropdown - Only show on Table view */}
-                  {activeView === 'table' && (
-                    <div className="flex items-center gap-2">
-                      <Select value={groupByMode} onValueChange={(value: 'status' | 'vertical') => setGroupByMode(value)}>
-                        <SelectTrigger className="w-[160px] h-8 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <Filter className="h-3 w-3" />
-                            <SelectValue placeholder="Group by" />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="status">Group by Status</SelectItem>
-                          <SelectItem value="vertical">Group by Vertical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  {/* Group By Dropdown - Show on Table and Archive view */}
+                  <div className="flex items-center gap-2">
+                    <Select value={groupByMode} onValueChange={(value: 'status' | 'vertical') => setGroupByMode(value)}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Filter className="h-3 w-3" />
+                          <SelectValue placeholder="Group by" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="status">Group by Status</SelectItem>
+                        <SelectItem value="vertical">Group by Vertical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   
                   {/* Year Filter Dropdown */}
                   <DropdownMenu>

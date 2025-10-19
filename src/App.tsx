@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Dashboard } from './components/Dashboard';
 import { ProjectPage } from './components/ProjectPage';
 import { ProjectDetailSidebar } from './components/ProjectDetailSidebar';
@@ -913,7 +915,9 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AppContent />
+          <DndProvider backend={HTML5Backend}>
+            <AppContent />
+          </DndProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

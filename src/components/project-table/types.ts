@@ -1,4 +1,4 @@
-import { Project, Collaborator } from '../../types/project';
+import { Project, Collaborator, TableColumn } from '../../types/project';
 
 /**
  * Configuration for project row rendering
@@ -65,6 +65,9 @@ export interface ProjectTableRowProps {
   
   // Context
   isPublicView: boolean;
+  
+  // 🆕 Column Order (v2.4.0) - Optional for backward compatibility
+  columns?: TableColumn[];
 }
 
 /**

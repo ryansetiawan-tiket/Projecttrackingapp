@@ -210,6 +210,7 @@
     --radius-xs: .125rem;
     --radius-lg: var(--radius);
     --drop-shadow-md: 0 3px 3px #0000001f;
+    --ease-in: cubic-bezier(.4, 0, 1, 1);
     --ease-out: cubic-bezier(0, 0, .2, 1);
     --ease-in-out: cubic-bezier(.4, 0, .2, 1);
     --animate-spin: spin 1s linear infinite;
@@ -1237,6 +1238,10 @@
     height: calc(var(--spacing) * 64);
   }
 
+  .h-96 {
+    height: calc(var(--spacing) * 96);
+  }
+
   .h-\[1\.15rem\] {
     height: 1.15rem;
   }
@@ -1309,8 +1314,8 @@
     max-height: 92vh;
   }
 
-  .max-h-\[120px\] {
-    max-height: 120px;
+  .max-h-\[200px\] {
+    max-height: 200px;
   }
 
   .max-h-\[300px\] {
@@ -1367,6 +1372,10 @@
 
   .min-h-screen {
     min-height: 100vh;
+  }
+
+  .w-0\.5 {
+    width: calc(var(--spacing) * .5);
   }
 
   .w-1 {
@@ -1751,6 +1760,13 @@
     --tw-scale-x: 95%;
     --tw-scale-y: 95%;
     --tw-scale-z: 95%;
+    scale: var(--tw-scale-x) var(--tw-scale-y);
+  }
+
+  .scale-105 {
+    --tw-scale-x: 105%;
+    --tw-scale-y: 105%;
+    --tw-scale-z: 105%;
     scale: var(--tw-scale-x) var(--tw-scale-y);
   }
 
@@ -3607,6 +3623,16 @@
     color: var(--muted-foreground);
   }
 
+  .text-muted-foreground\/0 {
+    color: var(--muted-foreground);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .text-muted-foreground\/0 {
+      color: color-mix(in oklab, var(--muted-foreground) 0%, transparent);
+    }
+  }
+
   .text-muted-foreground\/30 {
     color: var(--muted-foreground);
   }
@@ -4021,6 +4047,11 @@
     transition-duration: .5s;
   }
 
+  .ease-in {
+    --tw-ease: var(--ease-in);
+    transition-timing-function: var(--ease-in);
+  }
+
   .ease-in-out {
     --tw-ease: var(--ease-in-out);
     transition-timing-function: var(--ease-in-out);
@@ -4079,6 +4110,30 @@
   @media (hover: hover) {
     .group-hover\:text-foreground:is(:where(.group):hover *) {
       color: var(--foreground);
+    }
+  }
+
+  @media (hover: hover) {
+    .group-hover\:text-muted-foreground:is(:where(.group):hover *) {
+      color: var(--muted-foreground);
+    }
+  }
+
+  @media (hover: hover) {
+    .group-hover\:text-muted-foreground\/70:is(:where(.group):hover *) {
+      color: var(--muted-foreground);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .group-hover\:text-muted-foreground\/70:is(:where(.group):hover *) {
+        color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+      }
+    }
+  }
+
+  @media (hover: hover) {
+    .group-hover\:text-primary:is(:where(.group):hover *) {
+      color: var(--primary);
     }
   }
 

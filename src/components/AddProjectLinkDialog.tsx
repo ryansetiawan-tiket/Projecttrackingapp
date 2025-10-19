@@ -4,7 +4,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Plus, X, Link as LinkIcon } from 'lucide-react';
+import { Plus, X, Link as LinkIcon, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Project, ProjectLink } from '../types/project';
@@ -34,6 +34,7 @@ export function AddProjectLinkDialog({
   const [selectedLinkLabel, setSelectedLinkLabel] = useState<LinkLabel | null>(null);
   const [selectedPresetIcon, setSelectedPresetIcon] = useState<PremadeIcon | null>(null);
   const [showLinkLabelPicker, setShowLinkLabelPicker] = useState(false);
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   
   // Use controlled or internal open state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -64,6 +65,7 @@ export function AddProjectLinkDialog({
     setSelectedLinkLabel(null);
     setSelectedPresetIcon(null);
     setShowLinkLabelPicker(false);
+    setEditingLinkId(null);
   };
   
   const handleClose = () => {
@@ -109,7 +111,96 @@ export function AddProjectLinkDialog({
     );
   };
   
-  const handleAddLink = async () => {
+  const renderLinkIcon = (label: string) => {
+    const labelLower = label.toLowerCase();
+    
+    // Check database link labels
+    const linkLabel = linkLabels.find(
+      ll => ll?.label && ll.label.toLowerCase() === labelLower
+    );
+    
+    if (linkLabel?.icon_type === 'svg' && linkLabel.icon_value) {
+      return (
+        <div 
+          className="w-5 h-5 flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
+          dangerouslySetInnerHTML={{ __html: linkLabel.icon_value }}
+        />
+      );
+    }
+    
+    if (linkLabel?.icon_type === 'emoji' && linkLabel.icon_value) {
+      return <span className="text-lg">{linkLabel.icon_value}</span>;
+    }
+    
+    // Check preset icons
+    const preset = premadeIcons.find(
+      p => p.name.toLowerCase() === labelLower || p.id === labelLower.replace(/\s+/g, '-')
+    );
+    
+    if (preset) {
+      return renderPresetIcon(preset);
+    }
+    
+    // Fallback
+    return <LinkIcon className="h-5 w-5" />;
+  };
+  
+  const handleEditLink = (link: ProjectLink) => {
+    setEditingLinkId(link.id);
+    setNewLinkLabel(link.label);
+    setNewLinkUrl(link.url);
+    
+    // Try to match with existing link label or preset
+    const matchedLinkLabel = linkLabels.find(
+      ll => ll.label.toLowerCase() === link.label.toLowerCase()
+    );
+    
+    if (matchedLinkLabel) {
+      setSelectedLinkLabel(matchedLinkLabel);
+    } else {
+      const matchedPreset = premadeIcons.find(
+        p => p.name.toLowerCase() === link.label.toLowerCase()
+      );
+      if (matchedPreset) {
+        setSelectedPresetIcon(matchedPreset);
+      }
+    }
+  };
+  
+  const handleDeleteLink = async (linkId: string) => {
+    if (!selectedProject) return;
+    
+    const currentLinks = selectedProject.links?.labeled || [];
+    const updatedLinks = currentLinks.filter(l => l.id !== linkId);
+    
+    try {
+      if (onProjectUpdate) {
+        await onProjectUpdate(selectedProjectId, {
+          links: {
+            ...selectedProject.links,
+            labeled: updatedLinks
+          }
+        });
+      }
+      
+      toast.success('Link deleted');
+      
+      // If we're editing this link, reset the form
+      if (editingLinkId === linkId) {
+        setEditingLinkId(null);
+        setNewLinkLabel('');
+        setNewLinkUrl('');
+        setSelectedLinkLabel(null);
+        setSelectedPresetIcon(null);
+        setShowLinkLabelPicker(false);
+      }
+    } catch (error) {
+      console.error('Error deleting link:', error);
+      toast.error('Failed to delete link');
+    }
+  };
+  
+  const handleSaveLink = async () => {
     // Validation
     if (!selectedProjectId) {
       toast.error('Please select a project');
@@ -131,16 +222,25 @@ export function AddProjectLinkDialog({
       return;
     }
     
-    // Create new link
-    const newLink: ProjectLink = {
-      id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      label: newLinkLabel.trim(),
-      url: newLinkUrl.trim()
-    };
-    
-    // Update project with new link
     const currentLinks = selectedProject.links?.labeled || [];
-    const updatedLinks = [...currentLinks, newLink];
+    let updatedLinks: ProjectLink[];
+    
+    if (editingLinkId) {
+      // Update existing link
+      updatedLinks = currentLinks.map(link => 
+        link.id === editingLinkId
+          ? { ...link, label: newLinkLabel.trim(), url: newLinkUrl.trim() }
+          : link
+      );
+    } else {
+      // Create new link
+      const newLink: ProjectLink = {
+        id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        label: newLinkLabel.trim(),
+        url: newLinkUrl.trim()
+      };
+      updatedLinks = [...currentLinks, newLink];
+    }
     
     try {
       if (onProjectUpdate) {
@@ -152,7 +252,7 @@ export function AddProjectLinkDialog({
         });
       }
       
-      toast.success(`Link added to ${selectedProject.project_name}`);
+      toast.success(editingLinkId ? 'Link updated' : `Link added to ${selectedProject.project_name}`);
       
       // Reset form fields but keep project selected for easy multiple additions
       setNewLinkLabel('');
@@ -160,9 +260,10 @@ export function AddProjectLinkDialog({
       setSelectedLinkLabel(null);
       setSelectedPresetIcon(null);
       setShowLinkLabelPicker(false);
+      setEditingLinkId(null);
     } catch (error) {
-      console.error('Error adding link:', error);
-      toast.error('Failed to add link');
+      console.error('Error saving link:', error);
+      toast.error('Failed to save link');
     }
   };
   
@@ -179,7 +280,9 @@ export function AddProjectLinkDialog({
       )}
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Project Link</DialogTitle>
+          <DialogTitle>
+            {editingLinkId ? 'Edit Project Link' : 'Add Project Link'}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -212,31 +315,69 @@ export function AddProjectLinkDialog({
           {/* Show form only if project is selected */}
           {selectedProjectId && (
             <>
-              {/* Existing Links - Show for context */}
+              {/* Existing Links - Editable */}
               {selectedProject?.links?.labeled && selectedProject.links.labeled.length > 0 && (
                 <div className="space-y-2 p-3 bg-muted/30 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
                     <LinkIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Existing Links</span>
                   </div>
-                  <div className="space-y-2 max-h-[120px] overflow-y-auto">
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {selectedProject.links.labeled.map((link) => (
-                      <div key={link.id} className="flex items-start gap-2 p-2 bg-background rounded">
-                        <Badge variant="outline" className="text-xs shrink-0 mt-0.5">
-                          {link.label}
-                        </Badge>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline break-all min-w-0 flex-1"
-                          title={link.url}
-                        >
-                          {link.url}
-                        </a>
+                      <div 
+                        key={link.id} 
+                        className={`flex items-start gap-2 p-2 bg-background rounded transition-colors ${
+                          editingLinkId === link.id ? 'ring-2 ring-primary' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
+                          {renderLinkIcon(link.label)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">{link.label}</div>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline break-all"
+                            title={link.url}
+                          >
+                            {link.url}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditLink(link)}
+                            className="h-7 w-7 p-0"
+                            title="Edit link"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteLink(link.id)}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            title="Delete link"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Editing Indicator */}
+              {editingLinkId && (
+                <div className="flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded-md">
+                  <Pencil className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Editing link</span>
                 </div>
               )}
 
@@ -369,7 +510,7 @@ export function AddProjectLinkDialog({
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           if (newLinkLabel.trim() && newLinkUrl.trim()) {
-                            handleAddLink();
+                            handleSaveLink();
                           }
                         }
                       }}
@@ -403,7 +544,7 @@ export function AddProjectLinkDialog({
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       if (newLinkLabel.trim() && newLinkUrl.trim()) {
-                        handleAddLink();
+                        handleSaveLink();
                       }
                     }
                   }}
@@ -420,12 +561,27 @@ export function AddProjectLinkDialog({
           >
             Close
           </Button>
+          {editingLinkId && (
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setEditingLinkId(null);
+                setNewLinkLabel('');
+                setNewLinkUrl('');
+                setSelectedLinkLabel(null);
+                setSelectedPresetIcon(null);
+                setShowLinkLabelPicker(false);
+              }}
+            >
+              Cancel Edit
+            </Button>
+          )}
           <Button 
-            onClick={handleAddLink}
+            onClick={handleSaveLink}
             disabled={!selectedProjectId || !newLinkLabel.trim() || !newLinkUrl.trim()}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Link
+            {editingLinkId ? 'Update Link' : 'Add Link'}
           </Button>
         </DialogFooter>
       </DialogContent>

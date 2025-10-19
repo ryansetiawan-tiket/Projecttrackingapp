@@ -1824,4 +1824,98 @@ app.post("/make-server-691c6bba/announcement", async (c) => {
   }
 });
 
+// ========== Table Column Order Management (v2.4.0) ==========
+
+// Get user's custom column order
+app.get("/make-server-691c6bba/table-column-order", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    
+    if (authError || !user) {
+      console.log('Error getting user for column order:', authError);
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const key = `table_column_order:${user.id}`;
+    const result = await kv.get(key);
+    
+    return c.json({
+      success: true,
+      columnOrder: result?.columnOrder || null,
+      columnVisibility: result?.columnVisibility || null,
+    });
+  } catch (error) {
+    console.error('Error loading column order:', error);
+    return c.json({ error: 'Failed to load column order' }, 500);
+  }
+});
+
+// Save user's custom column order and visibility
+app.put("/make-server-691c6bba/table-column-order", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    
+    if (authError || !user) {
+      console.log('Error getting user for column order save:', authError);
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const { columnOrder, columnVisibility } = await c.req.json();
+    
+    if (!Array.isArray(columnOrder)) {
+      return c.json({ error: 'Invalid column order format' }, 400);
+    }
+    
+    const key = `table_column_order:${user.id}`;
+    
+    // Get existing data to preserve other fields
+    const existing = await kv.get(key);
+    
+    await kv.set(key, {
+      columnOrder,
+      columnVisibility: columnVisibility || existing?.columnVisibility || null,
+      lastUpdated: new Date().toISOString(),
+    });
+    
+    console.log(`Column order saved for user ${user.id}:`, columnOrder);
+    if (columnVisibility) {
+      console.log(`Column visibility saved for user ${user.id}:`, columnVisibility);
+    }
+    
+    return c.json({
+      success: true,
+      columnOrder,
+      columnVisibility: columnVisibility || existing?.columnVisibility || null,
+    });
+  } catch (error) {
+    console.error('Error saving column order:', error);
+    return c.json({ error: 'Failed to save column order' }, 500);
+  }
+});
+
+// Reset user's column order to default
+app.delete("/make-server-691c6bba/table-column-order", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    
+    if (authError || !user) {
+      console.log('Error getting user for column order reset:', authError);
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const key = `table_column_order:${user.id}`;
+    await kv.del(key);
+    
+    console.log(`Column order reset to default for user ${user.id}`);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting column order:', error);
+    return c.json({ error: 'Failed to reset column order' }, 500);
+  }
+});
+
 Deno.serve(app.fetch);
