@@ -1033,9 +1033,9 @@ export function ActionableItemManager({
         <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1">
           <CollapsibleTrigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="w-full justify-between text-sm hover:bg-muted"
+              className="w-full justify-between text-sm hover:bg-muted cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <CheckSquare className={`h-4 w-4 ${allCompleted ? 'text-green-600' : 'text-muted-foreground'}`} />
@@ -1047,8 +1047,8 @@ export function ActionableItemManager({
                   </Badge>
                 )}
               </div>
-              {/* Only show chevron when there are items to expand */}
-              {totalCount > 0 && (
+              {/* Show chevron when there are items to expand or when add form is open */}
+              {(totalCount > 0 || isAddingNew) && (
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               )}
             </Button>

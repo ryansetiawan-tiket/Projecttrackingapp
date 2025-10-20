@@ -15,6 +15,7 @@ interface CollaboratorAvatarsProps {
   isPublicView: boolean;
   isHovered: boolean;
   onUpdate: (collaborators: ProjectCollaborator[]) => void;
+  compactMode?: boolean;
 }
 
 // Helper: Get layout classes based on collaborator count
@@ -43,9 +44,10 @@ function getLayoutClasses(count: number): string {
 interface CollaboratorItemProps {
   collab: ProjectCollaborator;
   index: number;
+  compactMode?: boolean;
 }
 
-function CollaboratorItem({ collab, index }: CollaboratorItemProps) {
+function CollaboratorItem({ collab, index, compactMode = false }: CollaboratorItemProps) {
   return (
     <div className="flex flex-col items-center gap-1">
       <Tooltip>
@@ -90,23 +92,25 @@ function CollaboratorItem({ collab, index }: CollaboratorItemProps) {
           </div>
         </TooltipContent>
       </Tooltip>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (collab.profile_url) {
-            window.open(collab.profile_url, '_blank', 'noopener,noreferrer');
-          }
-        }}
-        disabled={!collab.profile_url}
-        className={`text-[10px] leading-tight max-w-[50px] truncate ${
-          collab.profile_url 
-            ? 'text-foreground hover:text-primary cursor-pointer transition-colors' 
-            : 'text-foreground cursor-default'
-        }`}
-        title={collab.profile_url ? `Open ${collab.name}'s profile` : collab.nickname || collab.name}
-      >
-        {collab.nickname || collab.name}
-      </button>
+      {!compactMode && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (collab.profile_url) {
+              window.open(collab.profile_url, '_blank', 'noopener,noreferrer');
+            }
+          }}
+          disabled={!collab.profile_url}
+          className={`text-[10px] leading-tight max-w-[50px] truncate ${
+            collab.profile_url 
+              ? 'text-foreground hover:text-primary cursor-pointer transition-colors' 
+              : 'text-foreground cursor-default'
+          }`}
+          title={collab.profile_url ? `Open ${collab.name}'s profile` : collab.nickname || collab.name}
+        >
+          {collab.nickname || collab.name}
+        </button>
+      )}
     </div>
   );
 }
@@ -228,7 +232,8 @@ export function CollaboratorAvatars({
   allCollaborators,
   isPublicView,
   isHovered,
-  onUpdate
+  onUpdate,
+  compactMode = false
 }: CollaboratorAvatarsProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -343,12 +348,12 @@ export function CollaboratorAvatars({
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex justify-center gap-3">
                       {visibleCollabs.slice(0, 3).map((collab, index) => (
-                        <CollaboratorItem key={index} collab={collab} index={index} />
+                        <CollaboratorItem key={index} collab={collab} index={index} compactMode={compactMode} />
                       ))}
                     </div>
                     <div className="flex justify-center gap-3">
                       {visibleCollabs.slice(3, 5).map((collab, index) => (
-                        <CollaboratorItem key={index + 3} collab={collab} index={index + 3} />
+                        <CollaboratorItem key={index + 3} collab={collab} index={index + 3} compactMode={compactMode} />
                       ))}
                     </div>
                   </div>
@@ -359,12 +364,12 @@ export function CollaboratorAvatars({
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex justify-center gap-3">
                       {visibleCollabs.slice(0, 3).map((collab, index) => (
-                        <CollaboratorItem key={index} collab={collab} index={index} />
+                        <CollaboratorItem key={index} collab={collab} index={index} compactMode={compactMode} />
                       ))}
                     </div>
                     <div className="flex justify-center gap-3">
                       {visibleCollabs.slice(3, 5).map((collab, index) => (
-                        <CollaboratorItem key={index + 3} collab={collab} index={index + 3} />
+                        <CollaboratorItem key={index + 3} collab={collab} index={index + 3} compactMode={compactMode} />
                       ))}
                       <OverflowIndicator 
                         overflowCollaborators={overflowCollabs}
@@ -379,7 +384,7 @@ export function CollaboratorAvatars({
                 return (
                   <div className={layoutClass}>
                     {visibleCollabs.map((collab, index) => (
-                      <CollaboratorItem key={index} collab={collab} index={index} />
+                      <CollaboratorItem key={index} collab={collab} index={index} compactMode={compactMode} />
                     ))}
                   </div>
                 );

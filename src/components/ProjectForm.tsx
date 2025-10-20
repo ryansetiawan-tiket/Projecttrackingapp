@@ -10,7 +10,8 @@ import { Card, CardContent } from './ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
-import { Save, Trash2, Copy, X, Plus, Calendar, Users, Tag, Link, FileText, Briefcase, ArrowUpDown, Link as LinkIcon } from 'lucide-react';
+import { Separator } from './ui/separator';
+import { Save, Trash2, Copy, X, Plus, Calendar, Users, Tag, Link, FileText, Briefcase, ArrowUpDown, Link as LinkIcon, Building } from 'lucide-react';
 import { Project, Collaborator, ProjectFormData, ProjectStatus, ProjectType, ProjectCollaborator, ActionableItem, ProjectLink } from '../types/project';
 import { HSLColorPicker } from './HSLColorPicker';
 import { ActionableItemManager } from './ActionableItemManager';
@@ -23,6 +24,8 @@ import { getContrastColor } from '../utils/colorUtils';
 import { toast } from 'sonner@2.0.3';
 import { useLinkLabels, type LinkLabel } from '../hooks/useLinkLabels';
 import { premadeIcons, type PremadeIcon } from '../utils/premadeIcons';
+import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
+import { LightroomIcon } from './icons/LightroomIcon';
 
 export interface ProjectFormProps {
   initialData: ProjectFormData;
@@ -49,6 +52,20 @@ export const ProjectForm = ({
   const [selectedPresetIcon, setSelectedPresetIcon] = useState<PremadeIcon | null>(null);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customLinkLabel, setCustomLinkLabel] = useState('');
+  
+  // Section visibility states - default to hidden for new projects
+  const [showProjectLinks, setShowProjectLinks] = useState(() => {
+    // Show if editing OR if there are existing links
+    return isEditing || (initialData.links.labeled && initialData.links.labeled.length > 0);
+  });
+  const [showLightroomAssets, setShowLightroomAssets] = useState(() => {
+    // Show if editing OR if there are existing lightroom assets
+    return isEditing || (initialData.lightroom_assets && initialData.lightroom_assets.length > 0);
+  });
+  const [showGDriveAssets, setShowGDriveAssets] = useState(() => {
+    // Show if editing OR if there are existing gdrive assets
+    return isEditing || (initialData.gdrive_assets && initialData.gdrive_assets.length > 0);
+  });
   
   // ⚡ NEW: Track manually added illustration types separately
   // This ensures manual types persist, while auto types from assets don't accumulate
@@ -131,10 +148,30 @@ export const ProjectForm = ({
 
   // SIMPLE UPDATE - NO CALLBACKS, NO COMPLEXITY
   const updateData = (field: keyof ProjectFormData, value: any) => {
-    let newData = { ...formData, [field]: value };
+    // Ensure vertical is always a string, never an object
+    let safeValue = value;
+    if (field === 'vertical') {
+      if (typeof value === 'object' && value !== null) {
+        console.warn('[ProjectForm] Received object for vertical field. Type:', typeof value, 'Constructor:', value.constructor?.name);
+        // Try to extract string from object
+        if ('value' in value && typeof value.value === 'string') {
+          safeValue = value.value;
+        } else if ('label' in value && typeof value.label === 'string') {
+          safeValue = value.label;
+        } else if ('name' in value && typeof value.name === 'string') {
+          safeValue = value.name;
+        } else {
+          safeValue = '';
+        }
+      } else if (typeof value !== 'string') {
+        safeValue = String(value);
+      }
+    }
     
-    // When status changes to "Done", auto-complete all tasks
-    if (field === 'status' && value === 'Done' && newData.actionable_items && newData.actionable_items.length > 0) {
+    let newData = { ...formData, [field]: safeValue };
+    
+    // When status changes to "Done", auto-complete all tasks and set completion timestamp
+    if (field === 'status' && safeValue === 'Done' && newData.actionable_items && newData.actionable_items.length > 0) {
       const updatedTasks = newData.actionable_items.map(task => ({
         ...task,
         status: 'Done',
@@ -143,7 +180,22 @@ export const ProjectForm = ({
       
       newData = {
         ...newData,
-        actionable_items: updatedTasks
+        actionable_items: updatedTasks,
+        // Only set completed_at if it doesn't exist (preserve original completion date)
+        completed_at: newData.completed_at || new Date().toISOString()
+      };
+    } else if (field === 'status' && safeValue === 'Done') {
+      // Status changed to Done but no tasks - still set completion timestamp
+      newData = {
+        ...newData,
+        // Only set completed_at if it doesn't exist (preserve original completion date)
+        completed_at: newData.completed_at || new Date().toISOString()
+      };
+    } else if (field === 'status' && safeValue !== 'Done') {
+      // Status changed away from Done - clear completion timestamp
+      newData = {
+        ...newData,
+        completed_at: null
       };
     }
     
@@ -357,124 +409,180 @@ export const ProjectForm = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Vertical Selection */}
-      <VerticalSelector
-        value={formData.vertical}
-        verticals={verticals}
-        verticalColors={verticalColors}
-        onChange={(value) => updateData('vertical', value)}
-        onAddVertical={onAddVertical}
-      />
+    <div className="lg:grid lg:grid-cols-[45%_1px_1fr] lg:gap-6 space-y-6 lg:space-y-0">
+      {/* ============================================ */}
+      {/* LEFT COLUMN - Essential Metadata            */}
+      {/* ============================================ */}
+      <div className="min-w-0">
+        {/* Project Name & Vertical - Combined Section (80:20 ratio) */}
+        <div className="grid grid-cols-[1fr_20%] gap-4 items-start">
+          {/* Project Name - Left (80%) */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 h-5">
+              <Briefcase className="h-4 w-4 text-primary" />
+              <Label htmlFor="project_name" className="font-medium">Project Name *</Label>
+            </div>
+            <Input
+              id="project_name"
+              value={formData.project_name || ''}
+              onChange={(e) => updateData('project_name', e.target.value)}
+              placeholder="Enter a descriptive project name"
+              required
+              className="text-base h-12 bg-background border-2 focus:border-primary"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
 
-      {/* Project Name - SUPER SIMPLE */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-primary" />
-          <Label htmlFor="project_name" className="font-medium">Project Name *</Label>
+          {/* Vertical Selection - Right (20%) */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 h-5">
+              <Building className="h-4 w-4 text-primary" />
+              <Label className="font-medium">Vertical *</Label>
+            </div>
+            <VerticalSelector
+              value={formData.vertical}
+              verticals={verticals}
+              verticalColors={verticalColors}
+              onChange={(value) => updateData('vertical', value)}
+              onAddVertical={onAddVertical}
+            />
+          </div>
         </div>
-        <Input
-          id="project_name"
-          value={formData.project_name || ''}
-          onChange={(e) => updateData('project_name', e.target.value)}
-          placeholder="Enter a descriptive project name"
-          required
-          className="text-base h-12 bg-background border-2 focus:border-primary"
-          autoComplete="off"
-          spellCheck={false}
+
+        {/* Horizontal Divider */}
+        <Separator className="my-6" />
+
+        {/* Description & Notes */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-medium text-sm">Description & Notes <span className="text-xs text-muted-foreground font-normal">(Optional)</span></h3>
+          </div>
+          
+          {/* Project Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-xs text-muted-foreground">Project Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => updateData('description', e.target.value)}
+              placeholder="Add project description, requirements, or other details..."
+              className="min-h-[100px] bg-background border-2 focus:border-primary resize-none"
+            />
+          </div>
+
+          {/* Internal Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="text-xs text-muted-foreground">Internal Notes (max 150 chars)</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Limit to 150 characters
+                if (value.length <= 150) {
+                  updateData('notes', value);
+                }
+              }}
+              placeholder="Add internal notes or reminders for this project..."
+              className="min-h-[80px] bg-background border-2 focus:border-primary resize-none"
+              maxLength={150}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {(formData.notes || '').length}/150 characters
+            </p>
+          </div>
+        </div>
+
+        {/* Horizontal Divider */}
+        <Separator className="my-6" />
+
+        {/* Timeline */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-medium text-sm">Project Timeline</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="start_date" className="text-xs font-medium text-muted-foreground">START DATE</Label>
+              <DatePickerWithToday
+                id="start_date"
+                value={formData.start_date}
+                onChange={(value) => updateData('start_date', value)}
+                className="h-12 bg-background border-2 focus:border-primary"
+                placeholder="Select start date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="due_date" className="text-xs font-medium text-muted-foreground">DUE DATE</Label>
+              <DatePickerWithToday
+                id="due_date"
+                value={formData.due_date}
+                onChange={(value) => updateData('due_date', value)}
+                className="h-12 bg-background border-2 focus:border-primary"
+                placeholder="Select due date"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Status */}
+        <div className="space-y-4 pt-[13px] pr-[0px] pb-[0px] pl-[0px]">
+          <div className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-medium text-sm">Project Status</h3>
+          </div>
+          
+          <Select 
+            value={formData.status} 
+            onValueChange={(value: ProjectStatus) => updateData('status', value)}
+          >
+            <SelectTrigger className="h-12 bg-background border-2 focus:border-primary">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map(status => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Horizontal Divider */}
+        <Separator className="my-6" />
+
+        {/* Collaborators */}
+        <TeamMemberManager
+          formData={formData}
+          collaborators={collaborators}
+          onFormDataChange={onFormDataChange}
         />
-      </div>
+    </div>
 
-      {/* Project Description (Optional) */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Project Description <span className="text-xs text-muted-foreground font-normal">(Optional)</span></h3>
-          </div>
-          
-          <Textarea
-            value={formData.description}
-            onChange={(e) => updateData('description', e.target.value)}
-            placeholder="Add project description, requirements, or other details..."
-            className="min-h-[100px] bg-background border-2 focus:border-primary resize-none"
-          />
-        </CardContent>
-      </Card>
+    {/* ============================================ */}
+    {/* VERTICAL DIVIDER                            */}
+    {/* ============================================ */}
+    <Separator orientation="vertical" className="hidden lg:block h-auto" />
 
-      {/* Project Notes (Optional) */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Internal Notes <span className="text-xs text-muted-foreground font-normal">(Optional, max 150 chars)</span></h3>
-          </div>
-          
-          <Textarea
-            value={formData.notes || ''}
-            onChange={(e) => {
-              const value = e.target.value;
-              // Limit to 150 characters
-              if (value.length <= 150) {
-                updateData('notes', value);
-              }
-            }}
-            placeholder="Add internal notes or reminders for this project..."
-            className="min-h-[80px] bg-background border-2 focus:border-primary resize-none"
-            maxLength={150}
-          />
-          <p className="text-xs text-muted-foreground text-right">
-            {(formData.notes || '').length}/150 characters
-          </p>
-        </CardContent>
-      </Card>
-
+    {/* ============================================ */}
+    {/* RIGHT COLUMN - Content & Assets             */}
+    {/* ============================================ */}
+    <div className="space-y-6 lg:pr-4 min-w-0">
       {/* Actionable Items */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4">
-          <ActionableItemManager
-            actionableItems={formData.actionable_items || []}
-            projectCollaborators={formData.collaborators}
-            globalCollaborators={collaborators.map(c => ({ 
-              id: c.id, 
-              name: c.name, 
-              role: c.role,
-              nickname: c.nickname,
-              photo_url: c.photo_url,
-              profile_url: c.profile_url
-            }))}
-            onActionableItemsChange={handleActionableItemsChange}
-            onProjectCollaboratorsChange={(newCollaborators) => {
-              console.log('🔄 ProjectForm: updating collaborators from', formData.collaborators.length, 'to', newCollaborators.length);
-              console.log('🔄 ProjectForm: new collaborators:', newCollaborators.map(c => ({ id: c.id, name: c.name })));
-              
-              // Use functional setState to avoid stale closure
-              setFormData(currentFormData => {
-                const updatedFormData = { ...currentFormData, collaborators: newCollaborators };
-                console.log('🔄 ProjectForm: calling onFormDataChange...');
-                onFormDataChange(updatedFormData);
-                console.log('🔄 ProjectForm: onFormDataChange completed');
-                return updatedFormData;
-              });
-            }}
-            onAllItemsCompleted={handleAllItemsCompleted}
-            onProjectStatusChange={(newStatus) => {
-              console.log(`[ProjectForm] 🎯 Auto-updating project status to "${newStatus}" from action trigger`);
-              updateData('status', newStatus);
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Type Selection */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Illustration Types *</h3>
-          </div>
-          
+      <Card className="overflow-hidden min-w-0">
+        <CardContent className="p-4 space-y-6">
+          {/* Illustration Types Section */}
           <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium text-sm">Illustration Types *</h3>
+            </div>
+            
             {/* Selected Types */}
             {formData.types && formData.types.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -543,81 +651,111 @@ export const ProjectForm = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Divider */}
+          <div className="border-t border-border" />
+
+          {/* Workflow/Actionable Items Section */}
+          <ActionableItemManager
+            actionableItems={formData.actionable_items || []}
+            projectCollaborators={formData.collaborators}
+            globalCollaborators={collaborators.map(c => ({ 
+              id: c.id, 
+              name: c.name, 
+              role: c.role,
+              nickname: c.nickname,
+              photo_url: c.photo_url,
+              profile_url: c.profile_url
+            }))}
+            onActionableItemsChange={handleActionableItemsChange}
+            onProjectCollaboratorsChange={(newCollaborators) => {
+              console.log('🔄 ProjectForm: updating collaborators from', formData.collaborators.length, 'to', newCollaborators.length);
+              console.log('🔄 ProjectForm: new collaborators:', newCollaborators.map(c => ({ id: c.id, name: c.name })));
+              
+              // Use functional setState to avoid stale closure
+              setFormData(currentFormData => {
+                const updatedFormData = { ...currentFormData, collaborators: newCollaborators };
+                console.log('🔄 ProjectForm: calling onFormDataChange...');
+                onFormDataChange(updatedFormData);
+                console.log('🔄 ProjectForm: onFormDataChange completed');
+                return updatedFormData;
+              });
+            }}
+            onAllItemsCompleted={handleAllItemsCompleted}
+            onProjectStatusChange={(newStatus) => {
+              console.log(`[ProjectForm] 🎯 Auto-updating project status to "${newStatus}" from action trigger`);
+              updateData('status', newStatus);
+            }}
+          />
         </CardContent>
       </Card>
 
-      {/* Collaborators */}
-      <TeamMemberManager
-        formData={formData}
-        collaborators={collaborators}
-        onFormDataChange={onFormDataChange}
-      />
-
-      {/* Status */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Tag className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Project Status</h3>
-          </div>
-          
-          <Select 
-            value={formData.status} 
-            onValueChange={(value: ProjectStatus) => updateData('status', value)}
-          >
-            <SelectTrigger className="h-12 bg-background border-2 focus:border-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map(status => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* Timeline */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Project Timeline</h3>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="start_date" className="text-xs font-medium text-muted-foreground">START DATE</Label>
-              <DatePickerWithToday
-                id="start_date"
-                value={formData.start_date}
-                onChange={(value) => updateData('start_date', value)}
-                className="h-12 bg-background border-2 focus:border-primary"
-                placeholder="Select start date"
-              />
+      {/* Add Section Buttons - Show buttons for hidden sections */}
+      {(!showProjectLinks || !showLightroomAssets || !showGDriveAssets) && (
+        <Card className="overflow-hidden min-w-0">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Plus className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium text-sm">Add Assets</h3>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="due_date" className="text-xs font-medium text-muted-foreground">DUE DATE</Label>
-              <DatePickerWithToday
-                id="due_date"
-                value={formData.due_date}
-                onChange={(value) => updateData('due_date', value)}
-                className="h-12 bg-background border-2 focus:border-primary"
-                placeholder="Select due date"
-              />
+            <div className="flex gap-2">
+              {!showProjectLinks && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowProjectLinks(true)}
+                  className="h-auto py-3 flex-1 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary/50"
+                >
+                  <LinkIcon className="h-5 w-5" />
+                  <span className="text-xs">Project Links</span>
+                </Button>
+              )}
+              {!showLightroomAssets && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowLightroomAssets(true)}
+                  className="h-auto py-3 flex-1 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary/50"
+                >
+                  <LightroomIcon className="h-5 w-5" />
+                  <span className="text-xs">Lightroom Assets</span>
+                </Button>
+              )}
+              {!showGDriveAssets && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowGDriveAssets(true)}
+                  className="h-auto py-3 flex-1 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary/50"
+                >
+                  <GoogleDriveIcon className="h-5 w-5" />
+                  <span className="text-xs">Google Drive Assets</span>
+                </Button>
+              )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Links */}
-      <Card className="overflow-hidden">
+      {showProjectLinks && (
+      <Card className="overflow-hidden min-w-0">
         <CardContent className="p-4 space-y-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Link className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Project Links</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Link className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium text-sm">Project Links</h3>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowProjectLinks(false)}
+              className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
+              title="Hide section"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
           
           {/* Existing Links */}
@@ -800,19 +938,24 @@ export const ProjectForm = ({
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Lightroom Assets */}
+      {showLightroomAssets && (
       <Card className="overflow-hidden">
         <CardContent className="p-4">
           <LightroomAssetManager
             assets={formData.lightroom_assets || []}
             onChange={(assets) => updateData('lightroom_assets', assets)}
             actionableItems={formData.actionable_items || []}
+            onClose={() => setShowLightroomAssets(false)}
           />
         </CardContent>
       </Card>
+      )}
 
       {/* Google Drive Assets */}
+      {showGDriveAssets && (
       <Card className="overflow-hidden">
         <CardContent className="p-4">
           <GDriveAssetManager
@@ -820,10 +963,14 @@ export const ProjectForm = ({
             onChange={(assets) => updateData('gdrive_assets', assets)}
             projectId={projectId || `temp-${Date.now()}`}
             actionableItems={formData.actionable_items || []}
+            onClose={() => setShowGDriveAssets(false)}
           />
         </CardContent>
       </Card>
-
+      )}
     </div>
-  );
+    {/* End RIGHT Column */}
+
+  </div>
+);
 };

@@ -15,7 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Plus, Calendar, Table, Settings, Archive, Moon, Sun, Image, ChevronDown, Filter, LogOut, HardDrive, User, BarChart3 } from 'lucide-react';
+import { Switch } from './ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Plus, Calendar, Table, Settings, Archive, Moon, Sun, Image, ChevronDown, Filter, LogOut, HardDrive, User, BarChart3, Minimize2 } from 'lucide-react';
 import { FilterOptions, Project, Collaborator } from '../types/project';
 import { useTheme } from './ThemeProvider';
 import { useStatusContext } from './StatusContext';
@@ -170,6 +172,22 @@ export function Dashboard({
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedQuarter, setSelectedQuarter] = useState<string>('all');
+  
+  // Compact mode state - persisted in localStorage
+  const [compactMode, setCompactMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('table-compact-mode');
+      return saved === 'true';
+    }
+    return false;
+  });
+  
+  // Save compact mode to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('table-compact-mode', compactMode.toString());
+    }
+  }, [compactMode]);
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -852,6 +870,25 @@ export function Dashboard({
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  
+                  {/* Compact Mode Switch */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Switch 
+                            id="compact-mode"
+                            checked={compactMode}
+                            onCheckedChange={setCompactMode}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Compact View</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </>
               )}
               
@@ -892,6 +929,7 @@ export function Dashboard({
                 onNavigateToGDrive={onNavigateToGDrive}
                 onCreateProject={onCreateProject}
                 isPublicView={!isLoggedIn}
+                isArchive={false}
               />
             ) : (
               <ProjectTable
@@ -908,6 +946,7 @@ export function Dashboard({
                 selectedYear={selectedYear}
                 groupByMode={groupByMode}
                 isPublicView={!isLoggedIn}
+                compactMode={compactMode}
               />
             )}
             </motion.div>
@@ -993,6 +1032,7 @@ export function Dashboard({
                 onNavigateToGDrive={onNavigateToGDrive}
                 onCreateProject={onCreateProject}
                 isPublicView={!isLoggedIn}
+                isArchive={true}
               />
             ) : (
               <ProjectTable
@@ -1009,6 +1049,7 @@ export function Dashboard({
                 selectedYear={selectedYear}
                 groupByMode={groupByMode}
                 isPublicView={!isLoggedIn}
+                compactMode={compactMode}
               />
             )}
             </motion.div>

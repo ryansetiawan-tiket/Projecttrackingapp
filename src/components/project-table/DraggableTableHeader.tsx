@@ -101,7 +101,8 @@ export function DraggableTableHeader({
       tabIndex={column.locked ? -1 : 0}
       onKeyDown={handleKeyDown}
       className={`
-        relative group
+        relative group/column
+        h-10 py-3
         transition-all duration-200
         ${isDragging ? 'opacity-60 scale-105 shadow-2xl z-50' : 'opacity-100'}
         ${column.locked ? 'bg-muted/30 cursor-default' : 'hover:bg-muted/50 cursor-grab active:cursor-grabbing'}
@@ -118,7 +119,7 @@ export function DraggableTableHeader({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/0 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/0 group-hover/column:text-muted-foreground transition-colors flex-shrink-0" />
             </TooltipTrigger>
             <TooltipContent>
               <p>This column is locked</p>
@@ -126,7 +127,7 @@ export function DraggableTableHeader({
           </Tooltip>
         </TooltipProvider>
       ) : (
-        <GripVertical className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/0 group-hover:text-muted-foreground/70 transition-colors flex-shrink-0" />
+        <GripVertical className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/0 group-hover/column:text-muted-foreground/70 transition-colors flex-shrink-0" />
       )}
       
       {/* Column content - projectName left-aligned, others centered */}

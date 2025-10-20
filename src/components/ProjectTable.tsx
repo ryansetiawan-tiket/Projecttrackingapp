@@ -13,7 +13,11 @@ import { useColors } from './ColorContext';
 import { useStatusContext } from './StatusContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useColumnOrder } from '../hooks/useColumnOrder';
+import { useStatusGroupOrder } from '../hooks/useStatusGroupOrder';
+import { useVerticalGroupOrder } from '../hooks/useVerticalGroupOrder';
 import { DraggableTableHeader } from './project-table/DraggableTableHeader';
+import { DraggableStatusHeader } from './project-table/DraggableStatusHeader';
+import { DraggableVerticalHeader } from './project-table/DraggableVerticalHeader';
 import { getQuarterPattern } from '../utils/quarterUtils';
 import { sortProjectsByUrgency, getMostUrgentPriority, getDaysUntilDeadline } from '../utils/sortingUtils';
 import { ProjectTableRow } from './project-table/renderProjectRow';
@@ -113,6 +117,7 @@ interface ProjectTableProps {
   selectedYear?: string;
   groupByMode?: 'status' | 'vertical';
   isPublicView?: boolean;
+  compactMode?: boolean;
 }
 
 export function ProjectTable({
@@ -128,7 +133,8 @@ export function ProjectTable({
   selectedQuarter = 'all',
   selectedYear = 'all',
   groupByMode = 'status',
-  isPublicView = false
+  isPublicView = false,
+  compactMode = false
 }: ProjectTableProps) {
   const { verticalColors } = useColors();
   const { statuses, getStatusColor: getStatusColorFromContext, isManualStatus } = useStatusContext();
@@ -140,6 +146,18 @@ export function ProjectTable({
     reorderColumn,
     isLoading: isLoadingColumns,
   } = useColumnOrder(accessToken);
+  
+  // 🆕 Custom Group Order Management (v2.9.0)
+  const { 
+    activeOrder: statusActiveOrder, 
+    archiveOrder: statusArchiveOrder,
+    updateActiveOrder,
+    updateArchiveOrder 
+  } = useStatusGroupOrder();
+  const { 
+    verticalOrder: customVerticalOrder,
+    updateVerticalOrder 
+  } = useVerticalGroupOrder();
   
   // Filter visible columns for rendering
   const visibleColumns = columns.filter(col => col.visible);
@@ -163,6 +181,10 @@ export function ProjectTable({
   const [lightroomDialogProjectId, setLightroomDialogProjectId] = useState<string | undefined>(undefined);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkDialogProjectId, setLinkDialogProjectId] = useState<string | undefined>(undefined);
+  
+  // 🆕 Local state for drag & drop reordering (v2.9.1)
+  const [localStatusOrder, setLocalStatusOrder] = useState<string[]>([]);
+  const [localVerticalOrder, setLocalVerticalOrder] = useState<string[]>([]);
   
   // Use projects prop directly (already sorted from Dashboard)
   const sortedProjects = projects;
@@ -227,9 +249,20 @@ export function ProjectTable({
   });
   
   // For DESKTOP: Group projects by status with special "Draft" group
-  // Get status order from context, sorted by order field
+  // Get all statuses sorted by order field (for status options in UI)
   const sortedStatuses = [...statuses].sort((a, b) => a.order - b.order);
-  const statusOrder = ['Draft', ...sortedStatuses.map(s => s.name)];
+  
+  // 🆕 Determine which status order to use based on projects
+  const projectStatuses = filteredProjects.map(p => p.status).filter(Boolean);
+  const hasArchiveStatuses = projectStatuses.some(s => s === 'Done' || s === 'Canceled');
+  const hasActiveStatuses = projectStatuses.some(s => s !== 'Done' && s !== 'Canceled');
+  
+  // Use archive order if only archive statuses, otherwise use active order
+  const useArchiveOrder = hasArchiveStatuses && !hasActiveStatuses;
+  const customStatusOrder = useArchiveOrder ? statusArchiveOrder : statusActiveOrder;
+  
+  // Build final status order: Draft first, then custom order
+  const statusOrder = ['Draft', ...customStatusOrder];
   const groupedByStatus = filteredProjects.reduce((groups, project) => {
     // Separate draft projects into "Draft" group
     if (project.is_draft) {
@@ -287,13 +320,45 @@ export function ProjectTable({
     return groups;
   }, {} as Record<string, Project[]>);
 
-  // Sort verticals alphabetically, with "Uncategorized" last
+  // 🆕 Sort verticals using custom order, with "Uncategorized" last
   const sortedVerticalKeys = Object.keys(groupedByVerticalDesktop).sort((a, b) => {
+    // "Uncategorized" always last
     if (a === 'Uncategorized') return 1;
     if (b === 'Uncategorized') return -1;
+    
+    const indexA = customVerticalOrder.indexOf(a);
+    const indexB = customVerticalOrder.indexOf(b);
+    
+    // If both verticals are in the custom order
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    
+    // If only a is in the custom order, it comes first
+    if (indexA !== -1) return -1;
+    
+    // If only b is in the custom order, it comes first
+    if (indexB !== -1) return 1;
+    
+    // If neither is in the custom order, sort alphabetically
     return a.localeCompare(b);
   });
   
+  // 🆕 Sync local order with server order (v2.9.1)
+  useEffect(() => {
+    // Sync status order
+    if (customStatusOrder.length > 0) {
+      setLocalStatusOrder(customStatusOrder);
+    }
+  }, [customStatusOrder.join(',')]);
+  
+  useEffect(() => {
+    // Sync vertical order
+    if (customVerticalOrder.length > 0) {
+      setLocalVerticalOrder(customVerticalOrder);
+    }
+  }, [customVerticalOrder.join(',')]);
+
   // 🎯 Initialize status groups from localStorage (preserve user's expand/collapse choices)
   useEffect(() => {
     const saved = localStorage.getItem('project-table-open-statuses');
@@ -334,7 +399,7 @@ export function ProjectTable({
     setOpenVerticals(new Set(sortedVerticalKeys));
   }, [sortedVerticalKeys.join(',')]); // Only reset when vertical keys change
   
-  // 🎯 Save status groups to localStorage whenever they change
+  // ��� Save status groups to localStorage whenever they change
   useEffect(() => {
     if (openStatuses.size > 0) {
       localStorage.setItem('project-table-open-statuses', JSON.stringify(Array.from(openStatuses)));
@@ -582,6 +647,47 @@ export function ProjectTable({
     );
   };
 
+  // 🆕 Drag & Drop Handlers (v2.9.1)
+  const handleMoveStatusGroup = (fromIndex: number, toIndex: number) => {
+    // Note: Draft is always first and not in the draggable list
+    // So we need to offset indices by 1
+    const newOrder = [...localStatusOrder];
+    const [movedItem] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, movedItem);
+    
+    setLocalStatusOrder(newOrder);
+    
+    // Save to database (debounced)
+    if (useArchiveOrder) {
+      updateArchiveOrder(newOrder).catch(err => {
+        console.error('Failed to update archive order:', err);
+        // Revert on error
+        setLocalStatusOrder(customStatusOrder);
+      });
+    } else {
+      updateActiveOrder(newOrder).catch(err => {
+        console.error('Failed to update active order:', err);
+        // Revert on error
+        setLocalStatusOrder(customStatusOrder);
+      });
+    }
+  };
+
+  const handleMoveVerticalGroup = (fromIndex: number, toIndex: number) => {
+    const newOrder = [...localVerticalOrder];
+    const [movedItem] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, movedItem);
+    
+    setLocalVerticalOrder(newOrder);
+    
+    // Save to database
+    updateVerticalOrder(newOrder).catch(err => {
+      console.error('Failed to update vertical order:', err);
+      // Revert on error
+      setLocalVerticalOrder(customVerticalOrder);
+    });
+  };
+
   if (projects.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -716,8 +822,16 @@ export function ProjectTable({
             {/* Render grouped statuses */}
             {sortedStatusKeys.map((status) => {
               console.log('[ProjectTable] Rendering status group:', status, 'with', groupedByStatus[status]?.length, 'projects');
+              
+              // Calculate index for draggable items (exclude Draft)
+              const isDraft = status === 'Draft';
+              const statusIndex = isDraft ? -1 : localStatusOrder.indexOf(status);
+              const urgencyInfo = !openStatuses.has(status) && status !== 'Done' 
+                ? formatUrgencyInfo(groupedByStatus[status]) 
+                : null;
+              
               return (
-          <Card key={status}>
+          <Card key={status} className="group">
             <Collapsible
               open={openStatuses.has(status)}
               onOpenChange={() => toggleStatus(status)}
@@ -727,70 +841,63 @@ export function ProjectTable({
                 className="border-b border-border"
                 style={{ backgroundColor: getStatusHeaderBgColor(status) }}
               >
-                <CollapsibleTrigger className="w-full">
-                  <div className="flex items-center justify-between px-6 py-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors bg-[rgba(0,0,0,0)]">
-                    <div className="flex items-center gap-3">
-                      {openStatuses.has(status) ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <h3 className="font-mono font-medium" style={{ color: getStatusColorFromContext(status) }}>{status}</h3>
-                      <Badge 
-                        variant="secondary" 
-                        className={status === 'Draft' 
-                          ? 'text-xs bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700'
-                          : 'text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700'
-                        }
-                      >
-                        {groupedByStatus[status].length} {groupedByStatus[status].length === 1 ? 'project' : 'projects'}
-                      </Badge>
-                      
-                      {/* 🔥 Urgency indicator - only show when collapsed and not Done */}
-                      {!openStatuses.has(status) && status !== 'Done' && (() => {
-                        const urgencyInfo = formatUrgencyInfo(groupedByStatus[status]);
-                        if (!urgencyInfo) return null;
+                {isDraft ? (
+                  // Draft is not draggable - always first
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between px-6 py-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors bg-[rgba(0,0,0,0)]">
+                      <div className="flex items-center gap-3">
+                        {openStatuses.has(status) ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <h3 className="font-mono font-medium" style={{ color: getStatusColorFromContext(status) }}>{status}</h3>
+                        <Badge 
+                          variant="secondary" 
+                          className='text-xs bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700'
+                        >
+                          {groupedByStatus[status].length} {groupedByStatus[status].length === 1 ? 'project' : 'projects'}
+                        </Badge>
                         
-                        return (
-                          <Badge 
-                            variant={urgencyInfo.variant === 'destructive' ? 'destructive' : urgencyInfo.variant === 'warning' ? 'default' : 'secondary'}
-                            className={
-                              urgencyInfo.variant === 'destructive'
-                                ? 'text-xs bg-red-100 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700'
-                                : urgencyInfo.variant === 'warning'
-                                ? 'text-xs bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700'
-                                : 'text-xs bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700'
-                            }
-                          >
-                            {urgencyInfo.text}
-                          </Badge>
-                        );
-                      })()}
-                      
-                      {!isPublicView && (
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onCreateProject(undefined, status);
-                          }}
-                          className="p-0.5 rounded hover:bg-muted/50 transition-colors opacity-60 hover:opacity-100 cursor-pointer"
-                          title={`Create new project with status ${status}`}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
+                        {!isPublicView && (
+                          <div
+                            onClick={(e) => {
                               e.stopPropagation();
                               onCreateProject(undefined, status);
-                            }
-                          }}
-                        >
-                          <Plus className="w-3.5 h-3.5 text-muted-foreground" />
-                        </div>
-                      )}
+                            }}
+                            className="p-0.5 rounded hover:bg-muted/50 transition-colors opacity-60 hover:opacity-100 cursor-pointer"
+                            title={`Create new project with status ${status}`}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onCreateProject(undefined, status);
+                              }
+                            }}
+                          >
+                            <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CollapsibleTrigger>
+                  </CollapsibleTrigger>
+                ) : (
+                  // Other statuses are draggable
+                  <DraggableStatusHeader
+                    status={status}
+                    index={statusIndex}
+                    isOpen={openStatuses.has(status)}
+                    projectCount={groupedByStatus[status].length}
+                    urgencyBadge={urgencyInfo}
+                    statusColor={getStatusColorFromContext(status)}
+                    onMove={handleMoveStatusGroup}
+                    onToggle={() => toggleStatus(status)}
+                    onCreateProject={!isPublicView ? () => onCreateProject(undefined, status) : undefined}
+                    isPublicView={isPublicView}
+                  />
+                )}
               </div>
 
               {/* Status Group Content */}
@@ -798,7 +905,7 @@ export function ProjectTable({
                 <div className="overflow-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="group">
+                      <TableRow>
                         {visibleColumns.map((column, index) => {
                           // Map column IDs to widths and styles
                           const getColumnStyles = () => {
@@ -956,6 +1063,7 @@ export function ProjectTable({
                     indentLevel: 'status-subgroup',
                     showVerticalBadge: true,
                     rowPadding: 'pl-8',
+                    compactMode: compactMode,
                   }}
                   handlers={{
                     onClick: onProjectClick,
@@ -1011,44 +1119,25 @@ export function ProjectTable({
             {/* Render grouped verticals */}
             {sortedVerticalKeys.map((vertical) => {
               const verticalColor = verticalColors[vertical] || '#6b7280';
+              const verticalIndex = localVerticalOrder.indexOf(vertical);
               
               return (
-                <Card key={vertical}>
+                <Card key={vertical} className="group">
                   <Collapsible
                     open={openVerticals.has(vertical)}
                     onOpenChange={() => toggleVertical(vertical)}
                   >
                     {/* Vertical Group Header */}
                     <div className="border-b border-border bg-muted/30">
-                      <CollapsibleTrigger className="w-full">
-                        <div className="flex items-center justify-between px-6 py-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors bg-[rgba(0,0,0,0)]">
-                          <div className="flex items-center gap-3">
-                            {openVerticals.has(vertical) ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: verticalColor }}
-                              />
-                              <h3 
-                                className="font-mono font-medium uppercase tracking-wide"
-                                style={{ color: verticalColor }}
-                              >
-                                {vertical}
-                              </h3>
-                            </div>
-                            <Badge 
-                              variant="secondary" 
-                              className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700"
-                            >
-                              {groupedByVerticalDesktop[vertical].length} {groupedByVerticalDesktop[vertical].length === 1 ? 'project' : 'projects'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CollapsibleTrigger>
+                      <DraggableVerticalHeader
+                        vertical={vertical}
+                        index={verticalIndex}
+                        isOpen={openVerticals.has(vertical)}
+                        projectCount={groupedByVerticalDesktop[vertical].length}
+                        verticalColor={verticalColor}
+                        onMove={handleMoveVerticalGroup}
+                        onToggle={() => toggleVertical(vertical)}
+                      />
                     </div>
 
                     {/* Vertical Group Content */}
@@ -1203,6 +1292,7 @@ export function ProjectTable({
                                         indentLevel: 'status-subgroup',
                                         showVerticalBadge: false,
                                         rowPadding: 'pl-8',
+                                        compactMode: compactMode,
                                       }}
                                       handlers={{
                                         onClick: onProjectClick,

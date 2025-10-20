@@ -326,9 +326,12 @@ export function ProjectCard({
         // Use a small delay to batch updates and avoid race conditions
         const timer = setTimeout(() => {
           // Track completion timestamp when status changes to Done
+          // Only set completed_at if it doesn't exist (preserve original completion date)
           onProjectUpdate(project.id, { 
             status: newStatus,
-            completed_at: newStatus === 'Done' ? new Date().toISOString() : null
+            completed_at: newStatus === 'Done' 
+              ? (project.completed_at || new Date().toISOString()) // Preserve existing or set new
+              : null // Clear if moving away from Done
           });
         }, 200);
         

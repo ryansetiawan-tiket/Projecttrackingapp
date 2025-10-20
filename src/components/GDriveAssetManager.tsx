@@ -36,6 +36,7 @@ interface GDriveAssetManagerProps {
   onChange: (assets: GDriveAsset[]) => void;
   projectId: string;
   actionableItems?: ActionableItem[];
+  onClose?: () => void; // Optional callback to hide/close the section
 }
 
 // Preview item with blob URL for local preview before upload
@@ -53,7 +54,8 @@ export function GDriveAssetManager({
   assets, 
   onChange, 
   projectId: currentProjectId, 
-  actionableItems = [] 
+  actionableItems = [],
+  onClose
 }: GDriveAssetManagerProps) {
   const [newAsset, setNewAsset] = useState({
     asset_name: '',
@@ -1496,19 +1498,33 @@ export function GDriveAssetManager({
       >
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <Label>Add New Google Drive Asset</Label>
-            {/* 🆕 PHASE 3: Show context when adding child */}
-            {addingChildToFolder && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelAddChild}
-                className="h-7 text-xs"
-              >
-                <X className="h-3 w-3 mr-1" />
-                Cancel Add Child
-              </Button>
-            )}
+            <Label>Google Drive Assets</Label>
+            <div className="flex items-center gap-2">
+              {/* 🆕 PHASE 3: Show context when adding child */}
+              {addingChildToFolder && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelAddChild}
+                  className="h-7 text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Cancel Add Child
+                </Button>
+              )}
+              {onClose && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
+                  title="Hide section"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* 🆕 PHASE 3: Context banner when adding child */}

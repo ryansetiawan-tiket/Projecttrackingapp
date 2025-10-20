@@ -71,13 +71,13 @@ export function AssetOverview<T extends BaseAsset>({
   });
   
   // Sort by state - SHARED between tabs
-  type SortOption = 'completed-date' | 'created-date' | 'start-date' | 'due-date' | 'project-name';
+  type SortOption = 'created-date' | 'created-date-oldest' | 'start-date' | 'due-date' | 'project-name';
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('asset-overview-sort-by') as SortOption;
-      return saved || 'completed-date';
+      return saved || 'created-date';
     }
-    return 'completed-date';
+    return 'created-date';
   });
   
   // Toggle mobile grid - SHARED state
@@ -410,13 +410,13 @@ export function AssetOverview<T extends BaseAsset>({
   // Apply sorting
   projectsWithAssets = [...projectsWithAssets].sort((a, b) => {
     switch (sortBy) {
-      case 'completed-date': {
-        // Most recently completed first (descending), projects without completed_at go to the end
-        const dateA = a.completed_at ? new Date(a.completed_at).getTime() : 0;
-        const dateB = b.completed_at ? new Date(b.completed_at).getTime() : 0;
-        return dateB - dateA; // Newest completed first
-      }
       case 'created-date': {
+        // Newest created first (descending)
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA; // Newest first
+      }
+      case 'created-date-oldest': {
         // Oldest created first (ascending)
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -487,8 +487,8 @@ export function AssetOverview<T extends BaseAsset>({
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="completed-date">Completed Date</SelectItem>
-                <SelectItem value="created-date">Created Date (Oldest)</SelectItem>
+                <SelectItem value="created-date">Created Date (Newest)</SelectItem>
+                <SelectItem value="created-date-oldest">Created Date (Oldest)</SelectItem>
                 <SelectItem value="start-date">Start Date</SelectItem>
                 <SelectItem value="due-date">Due Date</SelectItem>
                 <SelectItem value="project-name">Project Name (A-Z)</SelectItem>

@@ -21,10 +21,25 @@ export function useColumnOrder(accessToken: string | undefined) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load column order from database
+  // Load column order from database or localStorage (for public users)
   useEffect(() => {
     if (!accessToken) {
-      setColumns(DEFAULT_TABLE_COLUMNS);
+      // Public user - load from localStorage
+      try {
+        const savedOrder = localStorage.getItem('public-column-order');
+        const savedVisibility = localStorage.getItem('public-column-visibility');
+        
+        if (savedOrder) {
+          const columnOrder = JSON.parse(savedOrder) as TableColumnId[];
+          const columnVisibility = savedVisibility ? JSON.parse(savedVisibility) : undefined;
+          setColumns(applyColumnOrder(columnOrder, columnVisibility));
+        } else {
+          setColumns(DEFAULT_TABLE_COLUMNS);
+        }
+      } catch (error) {
+        console.error('Error loading column order from localStorage:', error);
+        setColumns(DEFAULT_TABLE_COLUMNS);
+      }
       setIsLoading(false);
       return;
     }
@@ -65,9 +80,20 @@ export function useColumnOrder(accessToken: string | undefined) {
     loadColumnOrder();
   }, [accessToken]);
 
-  // Save column order and visibility to database
+  // Save column order and visibility to database or localStorage (for public users)
   const saveColumnOrder = useCallback(async (newOrder: TableColumnId[], newVisibility?: Record<TableColumnId, boolean>) => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      // Public user - save to localStorage
+      try {
+        localStorage.setItem('public-column-order', JSON.stringify(newOrder));
+        if (newVisibility) {
+          localStorage.setItem('public-column-visibility', JSON.stringify(newVisibility));
+        }
+      } catch (error) {
+        console.error('Error saving column order to localStorage:', error);
+      }
+      return;
+    }
 
     setIsSaving(true);
     try {

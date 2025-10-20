@@ -18,6 +18,9 @@ import { WorkflowManager } from './WorkflowManager-new';
 import { AdminProfileManager } from './AdminProfileManager';
 import { AnnouncementManager } from './AnnouncementManager';
 import { TableColumnOrderManager } from './TableColumnOrderManager';
+import { StatusGroupOrderManager } from './StatusGroupOrderManager';
+import { VerticalGroupOrderManager } from './VerticalGroupOrderManager';
+import { Separator } from './ui/separator';
 import { useStatuses } from '../hooks/useStatuses';
 import { useActionSettings } from './ActionSettingsContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -313,6 +316,14 @@ export function SettingsPage({
 
               {/* Table Column Order */}
               <TableColumnOrderManager />
+
+              {/* Status Group Order */}
+              <Separator />
+              <StatusGroupOrderManager />
+
+              {/* Vertical Group Order */}
+              <Separator />
+              <VerticalGroupOrderManager />
             </div>
           </TabsContent>
 

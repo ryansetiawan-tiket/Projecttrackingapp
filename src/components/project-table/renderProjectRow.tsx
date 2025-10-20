@@ -128,22 +128,24 @@ export function ProjectTableRow({
                   {project.description}
                 </div>
               )}
-              <AssetProgressBar
-                projectId={project.id}
-                projectStatus={project.status}
-                projectDueDate={project.due_date}
-                projectType={project.type}
-                projectTypes={project.types}
-                actionableItems={project.actionable_items}
-                isPublicView={isPublicView}
-                isExpanded={state.expandedAssets.has(project.id)}
-                onToggleExpansion={handleToggleAssetExpansion}
-                onUpdateProject={(data) => handlers.onUpdate(project.id, data)}
-                activeAssetPopover={state.activeAssetPopover}
-                onActiveAssetPopoverChange={(value) => onStateChange({ activeAssetPopover: value })}
-                statusOptions={statusOptions}
-                sortedStatuses={sortedStatuses}
-              />
+              {!config.compactMode && (
+                <AssetProgressBar
+                  projectId={project.id}
+                  projectStatus={project.status}
+                  projectDueDate={project.due_date}
+                  projectType={project.type}
+                  projectTypes={project.types}
+                  actionableItems={project.actionable_items}
+                  isPublicView={isPublicView}
+                  isExpanded={state.expandedAssets.has(project.id)}
+                  onToggleExpansion={handleToggleAssetExpansion}
+                  onUpdateProject={(data) => handlers.onUpdate(project.id, data)}
+                  activeAssetPopover={state.activeAssetPopover}
+                  onActiveAssetPopoverChange={(value) => onStateChange({ activeAssetPopover: value })}
+                  statusOptions={statusOptions}
+                  sortedStatuses={sortedStatuses}
+                />
+              )}
             </div>
           </TableCell>
         );
@@ -201,16 +203,19 @@ export function ProjectTableRow({
                           handlers.onUpdate(project.id, { 
                             status,
                             actionable_items: updatedAssets,
-                            completed_at: new Date().toISOString()
+                            // Only set completed_at if it doesn't exist (first time completion)
+                            completed_at: project.completed_at || new Date().toISOString()
                           });
                         } else if (status === 'Done') {
                           handlers.onUpdate(project.id, { 
                             status,
-                            completed_at: new Date().toISOString()
+                            // Only set completed_at if it doesn't exist (first time completion)
+                            completed_at: project.completed_at || new Date().toISOString()
                           });
                         } else {
                           handlers.onUpdate(project.id, { 
                             status,
+                            // Clear completed_at when status changes from Done to something else
                             completed_at: null
                           });
                         }
@@ -265,6 +270,7 @@ export function ProjectTableRow({
               onPopoverChange={(value) => onStateChange({ activeDatePopover: value })}
               onDateUpdate={handleDateUpdate}
               onSetToday={handleSetToday}
+              compactMode={config.compactMode}
             />
           </TableCell>
         );
@@ -281,6 +287,7 @@ export function ProjectTableRow({
               onPopoverChange={(value) => onStateChange({ activeDatePopover: value })}
               onDateUpdate={handleDateUpdate}
               onSetToday={handleSetToday}
+              compactMode={config.compactMode}
             />
           </TableCell>
         );
@@ -303,6 +310,7 @@ export function ProjectTableRow({
               onUpdate={(updatedCollaborators) => {
                 handlers.onUpdate(project.id, { collaborators: updatedCollaborators });
               }}
+              compactMode={config.compactMode}
             />
           </TableCell>
         );

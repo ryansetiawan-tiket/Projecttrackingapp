@@ -13,6 +13,7 @@ interface DateCellProps {
   onPopoverChange: (value: string | null) => void;
   onDateUpdate: (projectId: string, field: string, date: Date | undefined) => void;
   onSetToday: (projectId: string, field: string) => void;
+  compactMode?: boolean;
 }
 
 // Helper to convert date string to Date object for calendar
@@ -34,14 +35,15 @@ export function DateCell({
   activeDatePopover,
   onPopoverChange,
   onDateUpdate,
-  onSetToday
+  onSetToday,
+  compactMode = false
 }: DateCellProps) {
   const popoverId = `${projectId}-${field === 'start_date' ? 'start' : 'due'}`;
 
   if (isPublicView) {
     return (
       <div className="text-sm text-muted-foreground md:text-foreground text-left">
-        <DateWithQuarter dateString={dateString} />
+        <DateWithQuarter dateString={dateString} showQuarter={!compactMode} />
       </div>
     );
   }
@@ -53,7 +55,7 @@ export function DateCell({
     >
       <PopoverTrigger asChild>
         <button className="text-sm text-muted-foreground md:text-foreground hover:text-primary transition-colors cursor-pointer text-left">
-          <DateWithQuarter dateString={dateString} />
+          <DateWithQuarter dateString={dateString} showQuarter={!compactMode} />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

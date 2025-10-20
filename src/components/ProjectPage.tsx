@@ -375,7 +375,7 @@ export function ProjectPage({
         ? "flex-1 overflow-y-auto px-4 pb-2 drawer-scroll-area" 
         : "container mx-auto px-4 py-6 mobile-bottom-spacing"
       }>
-        <div className={isMobileDrawer ? "" : "max-w-4xl mx-auto"}>
+        <div className={isMobileDrawer ? "" : "mx-auto"}>
           <Card className={isMobileDrawer ? "border-none shadow-none" : ""}>
             <CardHeader className={isMobileDrawer ? "px-0 pt-2" : ""}>
               <CardTitle className="text-lg">

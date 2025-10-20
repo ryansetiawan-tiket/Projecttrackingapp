@@ -18,9 +18,10 @@ interface LightroomAssetManagerProps {
   assets: LightroomAsset[];
   onChange: (assets: LightroomAsset[]) => void;
   actionableItems?: ActionableItem[]; // Assets to associate with lightroom files
+  onClose?: () => void; // Optional callback to hide/close the section
 }
 
-export function LightroomAssetManager({ assets, onChange, actionableItems = [] }: LightroomAssetManagerProps) {
+export function LightroomAssetManager({ assets, onChange, actionableItems = [], onClose }: LightroomAssetManagerProps) {
   const [newAsset, setNewAsset] = useState({
     asset_name: '',
     lightroom_url: '',
@@ -133,9 +134,23 @@ export function LightroomAssetManager({ assets, onChange, actionableItems = [] }
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label>Lightroom Assets</Label>
-        <span className="text-sm text-muted-foreground">
-          {assets.length} {assets.length === 1 ? 'asset' : 'assets'}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {assets.length} {assets.length === 1 ? 'asset' : 'assets'}
+          </span>
+          {onClose && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive"
+              title="Hide section"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Existing Assets List */}

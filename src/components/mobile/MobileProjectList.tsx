@@ -7,6 +7,8 @@ import { ChevronDown, Filter, Plus } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useColors } from '../ColorContext';
 import { useStatusContext } from '../StatusContext';
+import { useStatusGroupOrder } from '../../hooks/useStatusGroupOrder';
+import { useVerticalGroupOrder } from '../../hooks/useVerticalGroupOrder';
 import { sortProjectsByUrgency, getMostUrgentPriority } from '../../utils/sortingUtils';
 
 interface MobileProjectListProps {
@@ -21,6 +23,7 @@ interface MobileProjectListProps {
   onNavigateToGDrive?: (projectId: string) => void;
   onCreateProject?: (vertical?: string, status?: string) => void;
   isPublicView?: boolean;
+  isArchive?: boolean;
 }
 
 export function MobileProjectList({
@@ -34,10 +37,13 @@ export function MobileProjectList({
   onNavigateToLightroom,
   onNavigateToGDrive,
   onCreateProject,
-  isPublicView = false
+  isPublicView = false,
+  isArchive = false
 }: MobileProjectListProps) {
   const { verticalColors } = useColors();
   const { statuses } = useStatusContext();
+  const { activeOrder, archiveOrder } = useStatusGroupOrder();
+  const { verticalOrder } = useVerticalGroupOrder();
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
 
   // Group projects and sort each group by urgency
@@ -58,40 +64,41 @@ export function MobileProjectList({
     groupedProjects[key] = sortProjectsByUrgency(groupedProjects[key]);
   });
 
-  // Sort groups based on mode
+  // Sort groups based on mode using custom order from settings
   let sortedGroupKeys: string[];
   if (groupByMode === 'status') {
-    // Sort by status order from context
+    // Use custom status order from settings (active or archive)
+    const statusOrder = isArchive ? archiveOrder : activeOrder;
+    
     sortedGroupKeys = Object.keys(groupedProjects).sort((a, b) => {
-      const indexA = statuses.findIndex(s => s.name === a);
-      const indexB = statuses.findIndex(s => s.name === b);
-      
       // Put "No Status" at the end
       if (a === 'No Status') return 1;
       if (b === 'No Status') return -1;
       
-      // If status not found, put at end
+      const indexA = statusOrder.indexOf(a);
+      const indexB = statusOrder.indexOf(b);
+      
+      // If status not found in order, put at end
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
       
       return indexA - indexB;
     });
   } else {
-    // Sort verticals by urgency (most urgent project in each vertical)
+    // Use custom vertical order from settings
     sortedGroupKeys = Object.keys(groupedProjects).sort((a, b) => {
+      // Put "No Vertical" at the end
       if (a === 'No Vertical') return 1;
       if (b === 'No Vertical') return -1;
       
-      // Sort by most urgent project in each vertical
-      const urgencyA = getMostUrgentPriority(groupedProjects[a]);
-      const urgencyB = getMostUrgentPriority(groupedProjects[b]);
+      const indexA = verticalOrder.indexOf(a);
+      const indexB = verticalOrder.indexOf(b);
       
-      if (urgencyA !== urgencyB) {
-        return urgencyA - urgencyB; // Lower priority = more urgent = comes first
-      }
+      // If vertical not found in order, put at end
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
       
-      // If same urgency, sort alphabetically
-      return a.localeCompare(b);
+      return indexA - indexB;
     });
   }
 

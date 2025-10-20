@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from './ui/command';
@@ -125,12 +124,11 @@ export function TeamMemberManager({
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <h3 className="font-medium text-sm">Collaborators</h3>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <h3 className="font-medium text-sm">Collaborators</h3>
+      </div>
         
         {/* Current Collaborators */}
         {formData.collaborators.length > 0 && (
@@ -338,7 +336,6 @@ export function TeamMemberManager({
             </p>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
