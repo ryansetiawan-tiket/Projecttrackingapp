@@ -9,6 +9,7 @@ import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { ScrollArea } from './ui/scroll-area';
 import { Save, Trash2, Copy, X, Plus, Calendar, Users, Tag, Link, FileText, Briefcase, ArrowUpDown, Link as LinkIcon } from 'lucide-react';
 import { Project, Collaborator, ProjectFormData, ProjectStatus, ProjectType, ProjectCollaborator, ActionableItem, ProjectLink } from '../types/project';
 import { HSLColorPicker } from './HSLColorPicker';
@@ -44,10 +45,10 @@ export const ProjectForm = ({
 }: ProjectFormProps) => {
   // SIMPLE STATE - NO COMPLEXITY AT ALL
   const [formData, setFormData] = useState<ProjectFormData>(initialData);
-  const [newLinkLabel, setNewLinkLabel] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [selectedLinkLabel, setSelectedLinkLabel] = useState<LinkLabel | null>(null);
-  const [showLinkLabelPicker, setShowLinkLabelPicker] = useState(false);
+  const [selectedPresetIcon, setSelectedPresetIcon] = useState<PremadeIcon | null>(null);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customLinkLabel, setCustomLinkLabel] = useState('');
   
   // ⚡ NEW: Track manually added illustration types separately
   // This ensures manual types persist, while auto types from assets don't accumulate
@@ -76,6 +77,48 @@ export const ProjectForm = ({
       refreshTypes?.();
     }
   }, [types, refreshTypes]);
+  
+  // Auto-detect icon from URL (like AddProjectLinkDialog)
+  useEffect(() => {
+    if (!newLinkUrl) return;
+    
+    try {
+      const url = new URL(newLinkUrl.startsWith('http') ? newLinkUrl : `https://${newLinkUrl}`);
+      const domain = url.hostname.toLowerCase();
+      
+      // Map domains to icon IDs
+      const domainMap: Record<string, string> = {
+        'figma.com': 'figma',
+        'docs.google.com': 'google-docs',
+        'sheets.google.com': 'google-sheets',
+        'drive.google.com': 'google-drive',
+        'slack.com': 'slack',
+        'notion.so': 'notion',
+        'notion.com': 'notion',
+        'trello.com': 'trello',
+        'github.com': 'github',
+        'dropbox.com': 'dropbox',
+        'miro.com': 'miro',
+        'asana.com': 'asana',
+        'atlassian.net': 'confluence',
+        'confluence.': 'confluence',
+      };
+      
+      // Find matching icon
+      for (const [domainKey, iconId] of Object.entries(domainMap)) {
+        if (domain.includes(domainKey)) {
+          const icon = premadeIcons.find(i => i.id === iconId);
+          if (icon && !selectedPresetIcon) {
+            setSelectedPresetIcon(icon);
+            setShowCustomInput(false);
+          }
+          break;
+        }
+      }
+    } catch (e) {
+      // Invalid URL, ignore
+    }
+  }, [newLinkUrl, selectedPresetIcon]);
   const statusOptions: ProjectStatus[] = [
     "Not Started", "In Progress", "Babysit", "Done", 
     "On Hold", "Canceled", "On List Lightroom", "On Review"
@@ -132,63 +175,35 @@ export const ProjectForm = ({
   };
 
   const addLink = () => {
-    if (newLinkLabel.trim() && newLinkUrl.trim()) {
+    const finalLabel = showCustomInput ? customLinkLabel.trim() : selectedPresetIcon?.name || '';
+    
+    if (finalLabel && newLinkUrl.trim()) {
       const newLink: ProjectLink = {
         id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        label: newLinkLabel.trim(),
+        label: finalLabel,
         url: newLinkUrl.trim()
       };
       
       const currentLinks = formData.links.labeled || [];
       updateData('links', { ...formData.links, labeled: [...currentLinks, newLink] });
       
-      setNewLinkLabel('');
+      // Reset form
       setNewLinkUrl('');
-      setSelectedLinkLabel(null);
-      setShowLinkLabelPicker(false);
+      setSelectedPresetIcon(null);
+      setShowCustomInput(false);
+      setCustomLinkLabel('');
     }
   };
 
-  const selectLinkLabel = (linkLabel: LinkLabel) => {
-    setSelectedLinkLabel(linkLabel);
-    setNewLinkLabel(linkLabel.label);
-    setShowLinkLabelPicker(false);
-  };
-  
   const selectPresetIcon = (preset: PremadeIcon) => {
-    // Create a temporary link label from preset for consistency
-    const tempLinkLabel: LinkLabel = {
-      id: preset.id,
-      label: preset.name,
-      icon_type: 'svg',
-      icon_value: preset.svg,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    setSelectedLinkLabel(tempLinkLabel);
-    setNewLinkLabel(preset.name);
-    setShowLinkLabelPicker(false);
+    setSelectedPresetIcon(preset);
+    setShowCustomInput(false);
   };
 
-  const renderLinkLabelIcon = (linkLabel: LinkLabel) => {
-    if (linkLabel.icon_type === 'emoji') {
-      return <span className="text-lg">{linkLabel.icon_value}</span>;
-    } else if (linkLabel.icon_type === 'svg') {
-      return (
-        <div 
-          className="w-5 h-5 flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
-          dangerouslySetInnerHTML={{ __html: linkLabel.icon_value }}
-        />
-      );
-    } else {
-      return <LinkIcon className="h-5 w-5" />;
-    }
-  };
-  
   const renderPresetIcon = (preset: PremadeIcon) => {
     return (
       <div 
-        className="w-5 h-5 flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
+        className="w-full h-full flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
         dangerouslySetInnerHTML={{ __html: preset.svg }}
       />
     );
@@ -640,155 +655,111 @@ export const ProjectForm = ({
             </div>
           )}
           
-          {/* Add New Link */}
+          {/* Add New Link - Icon Grid First Design */}
           <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="link_label" className="text-xs font-medium text-muted-foreground">LINK LABEL</Label>
-              
-              {/* Show selected label or input */}
-              {selectedLinkLabel ? (
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border-2 border-primary/50">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-md bg-background flex-shrink-0">
-                    {renderLinkLabelIcon(selectedLinkLabel)}
+            {/* Icon Selection Section */}
+            {!showCustomInput ? (
+              <div className="space-y-3">
+                <Label className="text-xs font-medium text-muted-foreground">QUICK SELECT ICON</Label>
+                
+                {/* Icon Grid - 4 columns, 40px icons */}
+                <ScrollArea className="h-[280px] border-2 rounded-lg bg-muted/20">
+                  <div className="p-3 grid grid-cols-4 gap-2">
+                    {premadeIcons.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => selectPresetIcon(preset)}
+                        className={`flex flex-col items-center gap-1.5 p-2.5 rounded-md transition-all hover:bg-accent ${
+                          selectedPresetIcon?.id === preset.id 
+                            ? 'bg-primary/10 ring-2 ring-primary' 
+                            : 'bg-background'
+                        }`}
+                        title={preset.name}
+                      >
+                        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                          {renderPresetIcon(preset)}
+                        </div>
+                        <span className="text-[10px] text-center leading-tight line-clamp-2 w-full">
+                          {preset.name}
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                  <span className="flex-1 font-medium">{selectedLinkLabel.label}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedLinkLabel(null);
-                      setNewLinkLabel('');
-                      setShowLinkLabelPicker(true);
-                    }}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : showLinkLabelPicker ? (
-                <div className="space-y-2">
-                  <Tabs defaultValue="presets" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="presets">Preset Icons</TabsTrigger>
-                      <TabsTrigger value="saved">Saved Labels</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="presets" className="mt-2">
-                      <div className="max-h-[400px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
-                        <div className="p-3 grid grid-cols-3 gap-2">
-                          {premadeIcons.map((preset) => (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => selectPresetIcon(preset)}
-                              className="flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
-                                {renderPresetIcon(preset)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm">{preset.name}</div>
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {preset.category}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="saved" className="mt-2">
-                      {linkLabels.length > 0 ? (
-                        <div className="max-h-[400px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
-                          <div className="p-2 space-y-1">
-                            {linkLabels.map((linkLabel) => (
-                              <button
-                                key={linkLabel.id}
-                                type="button"
-                                onClick={() => selectLinkLabel(linkLabel)}
-                                className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
-                              >
-                                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
-                                  {renderLinkLabelIcon(linkLabel)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium">{linkLabel.label}</div>
-                                  {linkLabel.placeholder && (
-                                    <div className="text-xs text-muted-foreground truncate">
-                                      {linkLabel.placeholder}
-                                    </div>
-                                  )}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-6 text-center border-2 border-primary/50 rounded-lg bg-background">
-                          <LinkIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">No saved labels yet</p>
-                          <p className="text-xs text-muted-foreground mt-1">Create custom labels in Settings</p>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowLinkLabelPicker(false)}
-                      className="flex-1"
-                    >
-                      Use Custom Label
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowLinkLabelPicker(false)}
-                      className="px-3"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
+                </ScrollArea>
+                
+                {/* Custom Label Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowCustomInput(true);
+                    setSelectedPresetIcon(null);
+                  }}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Custom Label
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="custom_label" className="text-xs font-medium text-muted-foreground">
+                  CUSTOM LABEL
+                </Label>
                 <div className="flex gap-2">
                   <Input
-                    id="link_label"
-                    value={newLinkLabel}
-                    onChange={(e) => setNewLinkLabel(e.target.value)}
-                    placeholder="e.g., Figma, Google Sheet, Docs, etc."
-                    className="h-10 bg-muted/30 flex-1"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (newLinkLabel.trim() && newLinkUrl.trim()) {
-                          addLink();
-                        }
-                      }
-                    }}
+                    id="custom_label"
+                    value={customLinkLabel}
+                    onChange={(e) => setCustomLinkLabel(e.target.value)}
+                    placeholder="Enter custom label..."
+                    className="flex-1 h-10 bg-muted/30"
                   />
-                  {linkLabels.length > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowLinkLabelPicker(true)}
-                      className="h-10 px-3 shrink-0"
-                      title="Choose from saved labels"
-                    >
-                      <LinkIcon className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowCustomInput(false);
+                      setCustomLinkLabel('');
+                    }}
+                    className="px-3"
+                    title="Back to icon selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
+                <p className="text-xs text-muted-foreground">
+                  Custom labels will use a generic link icon
+                </p>
+              </div>
+            )}
+
+            {/* Selected Icon Preview */}
+            {selectedPresetIcon && !showCustomInput && (
+              <div className="flex items-center gap-3 p-3 bg-primary/5 border-2 border-primary/30 rounded-lg">
+                <div className="flex items-center justify-center w-10 h-10 rounded-md bg-background flex-shrink-0">
+                  {renderPresetIcon(selectedPresetIcon)}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">{selectedPresetIcon.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedPresetIcon.category}</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedPresetIcon(null)}
+                  className="h-7 w-7 p-0"
+                  title="Clear selection"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
             
+            {/* URL */}
             <div className="space-y-2">
               <Label htmlFor="link_url" className="text-xs font-medium text-muted-foreground">URL</Label>
               <div className="flex gap-2">
@@ -802,7 +773,8 @@ export const ProjectForm = ({
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      if (newLinkLabel.trim() && newLinkUrl.trim()) {
+                      const finalLabel = showCustomInput ? customLinkLabel.trim() : selectedPresetIcon?.name || '';
+                      if (finalLabel && newLinkUrl.trim()) {
                         addLink();
                       }
                     }
@@ -813,11 +785,17 @@ export const ProjectForm = ({
                   variant="outline" 
                   onClick={addLink} 
                   className="h-10 px-3"
-                  disabled={!newLinkLabel.trim() || !newLinkUrl.trim()}
+                  disabled={
+                    (!selectedPresetIcon && !customLinkLabel.trim() && !showCustomInput) ||
+                    !newLinkUrl.trim()
+                  }
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                💡 Paste a URL to auto-detect the matching icon
+              </p>
             </div>
           </div>
         </CardContent>

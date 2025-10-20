@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Plus, X, Link as LinkIcon, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { ScrollArea } from './ui/scroll-area';
 import { Project, ProjectLink } from '../types/project';
 import { toast } from 'sonner@2.0.3';
 import { useLinkLabels, type LinkLabel } from '../hooks/useLinkLabels';
@@ -29,18 +29,17 @@ export function AddProjectLinkDialog({
 }: AddProjectLinkDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [newLinkLabel, setNewLinkLabel] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [selectedLinkLabel, setSelectedLinkLabel] = useState<LinkLabel | null>(null);
-  const [selectedPresetIcon, setSelectedPresetIcon] = useState<PremadeIcon | null>(null);
-  const [showLinkLabelPicker, setShowLinkLabelPicker] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState<PremadeIcon | null>(null);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customLabel, setCustomLabel] = useState('');
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   
   // Use controlled or internal open state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
   
-  // Fetch link labels
+  // Fetch link labels (for saved custom labels)
   const { linkLabels } = useLinkLabels();
   
   // Set prefilled project when dialog opens
@@ -49,6 +48,48 @@ export function AddProjectLinkDialog({
       setSelectedProjectId(prefilledProjectId);
     }
   }, [open, prefilledProjectId]);
+  
+  // Auto-detect icon from URL
+  useEffect(() => {
+    if (!newLinkUrl || editingLinkId) return;
+    
+    try {
+      const url = new URL(newLinkUrl.startsWith('http') ? newLinkUrl : `https://${newLinkUrl}`);
+      const domain = url.hostname.toLowerCase();
+      
+      // Map domains to icon IDs
+      const domainMap: Record<string, string> = {
+        'figma.com': 'figma',
+        'docs.google.com': 'google-docs',
+        'sheets.google.com': 'google-sheets',
+        'drive.google.com': 'google-drive',
+        'slack.com': 'slack',
+        'notion.so': 'notion',
+        'notion.com': 'notion',
+        'trello.com': 'trello',
+        'github.com': 'github',
+        'dropbox.com': 'dropbox',
+        'miro.com': 'miro',
+        'asana.com': 'asana',
+        'atlassian.net': 'confluence',
+        'confluence.': 'confluence', // matches confluence.* domains
+      };
+      
+      // Find matching icon
+      for (const [domainKey, iconId] of Object.entries(domainMap)) {
+        if (domain.includes(domainKey)) {
+          const icon = premadeIcons.find(i => i.id === iconId);
+          if (icon && !selectedIcon) {
+            setSelectedIcon(icon);
+            setShowCustomInput(false);
+          }
+          break;
+        }
+      }
+    } catch (e) {
+      // Invalid URL, ignore
+    }
+  }, [newLinkUrl, selectedIcon, editingLinkId]);
   
   // Get selected project
   const selectedProject = projects.find(p => p.id === selectedProjectId);
@@ -60,11 +101,10 @@ export function AddProjectLinkDialog({
   
   const handleReset = () => {
     setSelectedProjectId('');
-    setNewLinkLabel('');
     setNewLinkUrl('');
-    setSelectedLinkLabel(null);
-    setSelectedPresetIcon(null);
-    setShowLinkLabelPicker(false);
+    setSelectedIcon(null);
+    setShowCustomInput(false);
+    setCustomLabel('');
     setEditingLinkId(null);
   };
   
@@ -73,39 +113,10 @@ export function AddProjectLinkDialog({
     setOpen(false);
   };
   
-  const selectLinkLabel = (linkLabel: LinkLabel) => {
-    setSelectedLinkLabel(linkLabel);
-    setSelectedPresetIcon(null);
-    setNewLinkLabel(linkLabel.label);
-    setShowLinkLabelPicker(false);
-  };
-  
-  const selectPresetIcon = (preset: PremadeIcon) => {
-    setSelectedPresetIcon(preset);
-    setSelectedLinkLabel(null);
-    setNewLinkLabel(preset.name);
-    setShowLinkLabelPicker(false);
-  };
-  
-  const renderLinkLabelIcon = (linkLabel: LinkLabel) => {
-    if (linkLabel.icon_type === 'emoji') {
-      return <span className="text-lg">{linkLabel.icon_value}</span>;
-    } else if (linkLabel.icon_type === 'svg') {
-      return (
-        <div 
-          className="w-5 h-5 flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
-          dangerouslySetInnerHTML={{ __html: linkLabel.icon_value }}
-        />
-      );
-    } else {
-      return <LinkIcon className="h-5 w-5" />;
-    }
-  };
-  
   const renderPresetIcon = (preset: PremadeIcon) => {
     return (
       <div 
-        className="w-5 h-5 flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
+        className="w-full h-full flex items-center justify-center [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:w-auto [&_svg]:h-auto" 
         dangerouslySetInnerHTML={{ __html: preset.svg }}
       />
     );
@@ -147,23 +158,21 @@ export function AddProjectLinkDialog({
   
   const handleEditLink = (link: ProjectLink) => {
     setEditingLinkId(link.id);
-    setNewLinkLabel(link.label);
     setNewLinkUrl(link.url);
     
-    // Try to match with existing link label or preset
-    const matchedLinkLabel = linkLabels.find(
-      ll => ll.label.toLowerCase() === link.label.toLowerCase()
+    // Try to match with preset icon
+    const matchedPreset = premadeIcons.find(
+      p => p.name.toLowerCase() === link.label.toLowerCase()
     );
     
-    if (matchedLinkLabel) {
-      setSelectedLinkLabel(matchedLinkLabel);
+    if (matchedPreset) {
+      setSelectedIcon(matchedPreset);
+      setShowCustomInput(false);
     } else {
-      const matchedPreset = premadeIcons.find(
-        p => p.name.toLowerCase() === link.label.toLowerCase()
-      );
-      if (matchedPreset) {
-        setSelectedPresetIcon(matchedPreset);
-      }
+      // Custom label
+      setCustomLabel(link.label);
+      setShowCustomInput(true);
+      setSelectedIcon(null);
     }
   };
   
@@ -188,11 +197,10 @@ export function AddProjectLinkDialog({
       // If we're editing this link, reset the form
       if (editingLinkId === linkId) {
         setEditingLinkId(null);
-        setNewLinkLabel('');
         setNewLinkUrl('');
-        setSelectedLinkLabel(null);
-        setSelectedPresetIcon(null);
-        setShowLinkLabelPicker(false);
+        setSelectedIcon(null);
+        setShowCustomInput(false);
+        setCustomLabel('');
       }
     } catch (error) {
       console.error('Error deleting link:', error);
@@ -207,8 +215,10 @@ export function AddProjectLinkDialog({
       return;
     }
     
-    if (!newLinkLabel.trim()) {
-      toast.error('Link label is required');
+    const finalLabel = showCustomInput ? customLabel.trim() : selectedIcon?.name || '';
+    
+    if (!finalLabel) {
+      toast.error('Please select an icon or enter a custom label');
       return;
     }
     
@@ -229,14 +239,14 @@ export function AddProjectLinkDialog({
       // Update existing link
       updatedLinks = currentLinks.map(link => 
         link.id === editingLinkId
-          ? { ...link, label: newLinkLabel.trim(), url: newLinkUrl.trim() }
+          ? { ...link, label: finalLabel, url: newLinkUrl.trim() }
           : link
       );
     } else {
       // Create new link
       const newLink: ProjectLink = {
         id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        label: newLinkLabel.trim(),
+        label: finalLabel,
         url: newLinkUrl.trim()
       };
       updatedLinks = [...currentLinks, newLink];
@@ -255,11 +265,10 @@ export function AddProjectLinkDialog({
       toast.success(editingLinkId ? 'Link updated' : `Link added to ${selectedProject.project_name}`);
       
       // Reset form fields but keep project selected for easy multiple additions
-      setNewLinkLabel('');
       setNewLinkUrl('');
-      setSelectedLinkLabel(null);
-      setSelectedPresetIcon(null);
-      setShowLinkLabelPicker(false);
+      setSelectedIcon(null);
+      setShowCustomInput(false);
+      setCustomLabel('');
       setEditingLinkId(null);
     } catch (error) {
       console.error('Error saving link:', error);
@@ -278,14 +287,14 @@ export function AddProjectLinkDialog({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {editingLinkId ? 'Edit Project Link' : 'Add Project Link'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1">
           {/* Project Selector - MANDATORY */}
           <div className="space-y-2">
             <Label htmlFor="project_selector">
@@ -322,54 +331,56 @@ export function AddProjectLinkDialog({
                     <LinkIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Existing Links</span>
                   </div>
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {selectedProject.links.labeled.map((link) => (
-                      <div 
-                        key={link.id} 
-                        className={`flex items-start gap-2 p-2 bg-background rounded transition-colors ${
-                          editingLinkId === link.id ? 'ring-2 ring-primary' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
-                          {renderLinkIcon(link.label)}
+                  <ScrollArea className="max-h-[150px]">
+                    <div className="space-y-2 pr-4">
+                      {selectedProject.links.labeled.map((link) => (
+                        <div 
+                          key={link.id} 
+                          className={`flex items-start gap-2 p-2 bg-background rounded transition-colors ${
+                            editingLinkId === link.id ? 'ring-2 ring-primary' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
+                            {renderLinkIcon(link.label)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{link.label}</div>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline break-all"
+                              title={link.url}
+                            >
+                              {link.url}
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditLink(link)}
+                              className="h-7 w-7 p-0"
+                              title="Edit link"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteLink(link.id)}
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              title="Delete link"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">{link.label}</div>
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline break-all"
-                            title={link.url}
-                          >
-                            {link.url}
-                          </a>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditLink(link)}
-                            className="h-7 w-7 p-0"
-                            title="Edit link"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteLink(link.id)}
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                            title="Delete link"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
 
@@ -381,153 +392,110 @@ export function AddProjectLinkDialog({
                 </div>
               )}
 
-              {/* Link Label */}
-              <div className="space-y-2">
-                <Label htmlFor="link_label">
-                  Link Label <span className="text-destructive">*</span>
-                </Label>
-                
-                {/* Show selected label/preset or input */}
-                {selectedLinkLabel || selectedPresetIcon ? (
-                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border-2 border-primary/50">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-md bg-background flex-shrink-0">
-                      {selectedLinkLabel ? renderLinkLabelIcon(selectedLinkLabel) : selectedPresetIcon ? renderPresetIcon(selectedPresetIcon) : null}
+              {/* Icon Selection Section */}
+              {!showCustomInput ? (
+                <div className="space-y-3">
+                  <Label>Quick Select Icon</Label>
+                  
+                  {/* Icon Grid - 4 columns, 40px icons */}
+                  <ScrollArea className="h-[280px] border-2 rounded-lg bg-muted/20">
+                    <div className="p-3 grid grid-cols-4 gap-2">
+                      {premadeIcons.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedIcon(preset);
+                            setShowCustomInput(false);
+                          }}
+                          className={`flex flex-col items-center gap-1.5 p-2.5 rounded-md transition-all hover:bg-accent ${
+                            selectedIcon?.id === preset.id 
+                              ? 'bg-primary/10 ring-2 ring-primary' 
+                              : 'bg-background'
+                          }`}
+                          title={preset.name}
+                        >
+                          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                            {renderPresetIcon(preset)}
+                          </div>
+                          <span className="text-[10px] text-center leading-tight line-clamp-2 w-full">
+                            {preset.name}
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                    <span className="flex-1 font-medium">{selectedLinkLabel?.label || selectedPresetIcon?.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedLinkLabel(null);
-                        setSelectedPresetIcon(null);
-                        setNewLinkLabel('');
-                        setShowLinkLabelPicker(true);
-                      }}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : showLinkLabelPicker ? (
-                  <div className="space-y-2">
-                    <Tabs defaultValue="presets" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="presets">Preset Icons</TabsTrigger>
-                        <TabsTrigger value="saved">Saved Labels</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="presets" className="mt-2">
-                        <div className="max-h-[400px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
-                          <div className="p-3 grid grid-cols-3 gap-2">
-                            {premadeIcons.map((preset) => (
-                              <button
-                                key={preset.id}
-                                type="button"
-                                onClick={() => selectPresetIcon(preset)}
-                                className="flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
-                              >
-                                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
-                                  {renderPresetIcon(preset)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm">{preset.name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {preset.category}
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="saved" className="mt-2">
-                        {linkLabels.length > 0 ? (
-                          <div className="max-h-[400px] overflow-y-auto border-2 border-primary/50 rounded-lg bg-background">
-                            <div className="p-3 space-y-2">
-                              {linkLabels.map((linkLabel) => (
-                                <button
-                                  key={linkLabel.id}
-                                  type="button"
-                                  onClick={() => selectLinkLabel(linkLabel)}
-                                  className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-accent transition-colors text-left"
-                                >
-                                  <div className="flex items-center justify-center w-8 h-8 rounded-md bg-muted/50 flex-shrink-0">
-                                    {renderLinkLabelIcon(linkLabel)}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-medium">{linkLabel.label}</div>
-                                    {linkLabel.placeholder && (
-                                      <div className="text-xs text-muted-foreground truncate">
-                                        {linkLabel.placeholder}
-                                      </div>
-                                    )}
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-6 text-center border-2 border-dashed border-muted rounded-lg">
-                            <p className="text-sm text-muted-foreground">No saved labels yet</p>
-                            <p className="text-xs text-muted-foreground mt-1">Create them in Settings → Link Labels</p>
-                          </div>
-                        )}
-                      </TabsContent>
-                    </Tabs>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowLinkLabelPicker(false)}
-                        className="flex-1"
-                      >
-                        Use Custom Label
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowLinkLabelPicker(false)}
-                        className="px-3"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
+                  </ScrollArea>
+                  
+                  {/* Custom Label Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowCustomInput(true);
+                      setSelectedIcon(null);
+                    }}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Custom Label
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="custom_label">
+                    Custom Label <span className="text-destructive">*</span>
+                  </Label>
                   <div className="flex gap-2">
                     <Input
-                      id="link_label"
-                      value={newLinkLabel}
-                      onChange={(e) => setNewLinkLabel(e.target.value)}
-                      placeholder="e.g., Figma, Google Sheet, Docs, etc."
+                      id="custom_label"
+                      value={customLabel}
+                      onChange={(e) => setCustomLabel(e.target.value)}
+                      placeholder="Enter custom label..."
                       className="flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (newLinkLabel.trim() && newLinkUrl.trim()) {
-                            handleSaveLink();
-                          }
-                        }
-                      }}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowLinkLabelPicker(true)}
-                      className="px-3 shrink-0"
-                      title="Choose from presets or saved labels"
+                      onClick={() => {
+                        setShowCustomInput(false);
+                        setCustomLabel('');
+                      }}
+                      className="px-3"
+                      title="Back to icon selection"
                     >
-                      <LinkIcon className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-              </div>
+                  <p className="text-xs text-muted-foreground">
+                    Custom labels will use a generic link icon
+                  </p>
+                </div>
+              )}
+
+              {/* Selected Icon Preview */}
+              {selectedIcon && !showCustomInput && (
+                <div className="flex items-center gap-3 p-3 bg-primary/5 border-2 border-primary/30 rounded-lg">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-md bg-background flex-shrink-0">
+                    {renderPresetIcon(selectedIcon)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">{selectedIcon.name}</div>
+                    <div className="text-xs text-muted-foreground">{selectedIcon.category}</div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIcon(null)}
+                    className="h-7 w-7 p-0"
+                    title="Clear selection"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
               
               {/* URL */}
               <div className="space-y-2">
@@ -543,18 +511,24 @@ export function AddProjectLinkDialog({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      if (newLinkLabel.trim() && newLinkUrl.trim()) {
+                      const finalLabel = showCustomInput ? customLabel.trim() : selectedIcon?.name || '';
+                      if (finalLabel && newLinkUrl.trim()) {
                         handleSaveLink();
                       }
                     }
                   }}
                 />
+                {!editingLinkId && (
+                  <p className="text-xs text-muted-foreground">
+                    💡 Paste a URL to auto-detect the matching icon
+                  </p>
+                )}
               </div>
             </>
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 border-t pt-4">
           <Button 
             variant="outline" 
             onClick={handleClose}
@@ -566,11 +540,10 @@ export function AddProjectLinkDialog({
               variant="outline"
               onClick={() => {
                 setEditingLinkId(null);
-                setNewLinkLabel('');
                 setNewLinkUrl('');
-                setSelectedLinkLabel(null);
-                setSelectedPresetIcon(null);
-                setShowLinkLabelPicker(false);
+                setSelectedIcon(null);
+                setShowCustomInput(false);
+                setCustomLabel('');
               }}
             >
               Cancel Edit
@@ -578,7 +551,11 @@ export function AddProjectLinkDialog({
           )}
           <Button 
             onClick={handleSaveLink}
-            disabled={!selectedProjectId || !newLinkLabel.trim() || !newLinkUrl.trim()}
+            disabled={
+              !selectedProjectId || 
+              (!selectedIcon && !customLabel.trim() && !showCustomInput) ||
+              !newLinkUrl.trim()
+            }
           >
             <Plus className="h-4 w-4 mr-2" />
             {editingLinkId ? 'Update Link' : 'Add Link'}
