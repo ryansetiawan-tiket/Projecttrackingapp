@@ -205,9 +205,17 @@ export function ActionableItemManager({
   const [localItems, setLocalItems] = useState<ActionableItem[]>(actionableItems);
   const pendingUpdateRef = useRef<NodeJS.Timeout | null>(null);
   const previousActionableItemsRef = useRef<ActionableItem[]>(actionableItems);
+  const isSelfUpdateRef = useRef<boolean>(false); // ✅ NEW: Track if update came from this component
   
   // Sync local state with props - with deep comparison
   useEffect(() => {
+    // ⚡ CRITICAL FIX: Skip update if it came from our own changes
+    if (isSelfUpdateRef.current) {
+      console.log('[ActionableItemManager] 🛑 Skipping props sync - self-initiated update');
+      isSelfUpdateRef.current = false; // Reset flag
+      return;
+    }
+    
     // Helper to deeply compare action arrays
     const areActionsEqual = (actions1: any[], actions2: any[]) => {
       if (actions1.length !== actions2.length) return false;
@@ -236,7 +244,8 @@ export function ActionableItemManager({
         if (item1.title !== item2.title ||
             item1.type !== item2.type ||
             item1.status !== item2.status ||
-            item1.is_completed !== item2.is_completed) {
+            item1.is_completed !== item2.is_completed ||
+            item1.illustration_type !== item2.illustration_type) {
           return false;
         }
         
@@ -258,7 +267,7 @@ export function ActionableItemManager({
         setExpandedAssetId(actionableItems[0].id);
       }
     }
-  }, [actionableItems, expandedAssetId]);
+  }, [actionableItems]); // ✅ FIX: Removed expandedAssetId from dependency array to prevent infinite loop
   
   // ⚡ PERFORMANCE: Debounced sync to parent (for database saves)
   const syncToParentDebounced = useCallback((items: ActionableItem[]) => {
@@ -270,8 +279,9 @@ export function ActionableItemManager({
     // Schedule sync after delay
     pendingUpdateRef.current = setTimeout(() => {
       console.log('[ActionableItemManager] 💾 Syncing to database...');
+      isSelfUpdateRef.current = true; // ✅ Mark as self-update
       onActionableItemsChange(items);
-    }, 150); // 150ms delay - fast enough for responsive UX, slow enough to batch rapid clicks
+    }, 300); // ✅ Increased to 300ms for better batching
   }, [onActionableItemsChange]);
   
   // Cleanup on unmount
@@ -281,6 +291,7 @@ export function ActionableItemManager({
         clearTimeout(pendingUpdateRef.current);
         // Flush any pending updates on unmount
         if (localItems.length > 0) {
+          isSelfUpdateRef.current = true; // ✅ Mark as self-update
           onActionableItemsChange(localItems);
         }
       }
@@ -371,6 +382,7 @@ export function ActionableItemManager({
     setLocalItems(updatedItems);
     
     // Sync to parent immediately for new items (no debounce needed)
+    isSelfUpdateRef.current = true; // ✅ Mark as self-update
     onActionableItemsChange(updatedItems);
     
     setFormData({
@@ -550,6 +562,7 @@ export function ActionableItemManager({
     );
 
     setLocalItems(updatedItems);
+    isSelfUpdateRef.current = true; // ✅ Mark as self-update
     onActionableItemsChange(updatedItems);
     setEditingItemId(null);
     
@@ -631,6 +644,7 @@ export function ActionableItemManager({
     setLocalItems(updatedItems);
     
     // Sync to parent immediately for deletions
+    isSelfUpdateRef.current = true; // ✅ Mark as self-update
     onActionableItemsChange(updatedItems);
   };
 
@@ -675,6 +689,7 @@ export function ActionableItemManager({
     setLocalItems(updatedItems);
     
     // Sync to parent immediately
+    isSelfUpdateRef.current = true; // ✅ Mark as self-update
     onActionableItemsChange(updatedItems);
 
     // Auto-expand the duplicated item
@@ -747,6 +762,7 @@ export function ActionableItemManager({
     }
     
     // Sync to parent immediately
+    isSelfUpdateRef.current = true; // ✅ Mark as self-update
     onActionableItemsChange(updatedItems);
     
     // Check if all items are now completed
@@ -778,6 +794,7 @@ export function ActionableItemManager({
     }
     
     // Sync to parent immediately
+    isSelfUpdateRef.current = true; // ✅ Mark as self-update
     onActionableItemsChange(updatedItems);
     
     // Check if all items are now completed
@@ -839,11 +856,13 @@ export function ActionableItemManager({
       
       // Sync to parent immediately (no delay)
       console.log('[ActionableItemManager] ⚡ Illustration type changed, syncing immediately');
+      isSelfUpdateRef.current = true; // ✅ Mark as self-update
       onActionableItemsChange(updatedItems);
     } else {
       // ⚡ DEBOUNCED: Sync to parent (database) after delay
       // This is used for non-critical updates like title changes, etc.
       // NOTE: Action changes bypass this and sync immediately (see AssetActionManager onChange)
+      // Self-update flag is set inside syncToParentDebounced
       syncToParentDebounced(updatedItems);
     }
   };
@@ -1000,6 +1019,13 @@ export function ActionableItemManager({
     }
   }, [actionableItems.length]);
 
+  // ✅ FIX: Auto-expand accordion when in edit mode
+  useEffect(() => {
+    if (editingItemId && expandedAssetId !== editingItemId) {
+      setExpandedAssetId(editingItemId);
+    }
+  }, [editingItemId, expandedAssetId]);
+
   return (
     <div className="space-y-3">
       {/* Header with Add Button (Always Visible) */}
@@ -1079,22 +1105,21 @@ export function ActionableItemManager({
                     className="mt-1 shrink-0"
                   />
                   
-                  <AccordionTrigger className="hover:no-underline py-0 pb-3 flex-1">
+                  <AccordionTrigger 
+                    className="hover:no-underline py-0 pb-3 flex-1"
+                    onKeyDown={(e) => {
+                      // ✅ FIX: Prevent spacebar from toggling accordion
+                      if (e.key === ' ') {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
                     <div className="flex items-start justify-between gap-3 w-full pr-2">
                       <div className="flex-1 min-w-0 space-y-2">
-                        {isEditing ? (
-                          <Input
-                            value={item.title}
-                            onChange={(e) => handleUpdateActionableItem(item.id, { title: e.target.value })}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-8 text-sm"
-                            placeholder="Asset title"
-                          />
-                        ) : (
-                          <h4 className={`text-sm truncate ${item.is_completed ? 'line-through text-muted-foreground' : ''}`}>
-                            {item.title}
-                          </h4>
-                        )}
+                        {/* ✅ FIX: Display title as text only, editing happens in AccordionContent */}
+                        <h4 className={`text-sm truncate text-left ${item.is_completed ? 'line-through text-muted-foreground' : ''}`}>
+                          {item.title}
+                        </h4>
                         
                         {/* Mini badges and progress in header */}
                         {!isEditing && (
@@ -1523,13 +1548,13 @@ export function ActionableItemManager({
                           </SelectTrigger>
                           <SelectContent>
                             {globalCollaborators
-                              .filter(collaborator => !editFormData.collaborators.some(c => c.id === collaboratorId))
+                              .filter(collaborator => !editFormData.collaborators.some(c => c.id === collaborator.id))
                               .map((collaborator) => (
                                 <SelectItem key={collaborator.id} value={collaborator.id} className="text-xs">
                                   {collaborator.nickname || collaborator.name} ({collaborator.role})
                                 </SelectItem>
                               ))}
-                            {globalCollaborators.filter(collaborator => !editFormData.collaborators.some(c => c.id === collaboratorId)).length === 0 && (
+                            {globalCollaborators.filter(collaborator => !editFormData.collaborators.some(c => c.id === collaborator.id)).length === 0 && (
                               <SelectItem value="all-assigned" disabled className="text-xs text-muted-foreground">
                                 All collaborators assigned
                               </SelectItem>
@@ -1663,7 +1688,7 @@ export function ActionableItemManager({
                         if (newlyCheckedAction && onProjectStatusChange) {
                           const triggerResult = shouldAutoTriggerStatus(newlyCheckedAction.name);
                           if (triggerResult.shouldTrigger && triggerResult.statusName) {
-                            console.log(`[ActionableItemManager] 🎯 Auto-triggering project status to "${triggerResult.statusName}" from MANUALLY checked action "${newlyCheckedAction.name}"`);
+                            console.log(`[ActionableItemManager] ���� Auto-triggering project status to "${triggerResult.statusName}" from MANUALLY checked action "${newlyCheckedAction.name}"`);
                             triggeredStatus = triggerResult.statusName;
                             onProjectStatusChange(triggerResult.statusName);
                           }
@@ -1722,6 +1747,7 @@ export function ActionableItemManager({
                         // ⚡ CRITICAL: Pass triggeredStatus so parent can respect manual trigger
                         // Sync to parent IMMEDIATELY (no debounce for action changes)
                         // Action changes are user-initiated and infrequent, so immediate sync is fine
+                        isSelfUpdateRef.current = true; // ✅ Mark as self-update
                         onActionableItemsChange(updatedItems, triggeredStatus);
                       }}
                       readOnly={false}

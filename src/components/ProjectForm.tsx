@@ -12,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Save, Trash2, Copy, X, Plus, Calendar, Users, Tag, Link, FileText, Briefcase, ArrowUpDown, Link as LinkIcon } from 'lucide-react';
 import { Project, Collaborator, ProjectFormData, ProjectStatus, ProjectType, ProjectCollaborator, ActionableItem, ProjectLink } from '../types/project';
 import { HSLColorPicker } from './HSLColorPicker';
-import { TypeColorPicker } from './TypeColorPicker';
 import { ActionableItemManager } from './ActionableItemManager';
 import { TeamMemberManager } from './TeamMemberManager';
 import { VerticalSelector } from './VerticalSelector';
@@ -62,13 +61,8 @@ export const ProjectForm = ({
   
   // Fetch link labels
   const { linkLabels, loading: linkLabelsLoading } = useLinkLabels();
-  
-  // Sync local state with initialData when it changes
-  useEffect(() => {
-    setFormData(initialData);
-  }, [initialData.collaborators, initialData.project_name, initialData.vertical, initialData.type, initialData.lightroom_assets]);
 
-  const { verticalColors, typeColors, types, updateVerticalColor, updateTypeColor, refreshTypes } = useColors();
+  const { verticalColors, typeColors, types, updateVerticalColor, refreshTypes } = useColors();
   
   // Debug logging
   useEffect(() => {
@@ -263,6 +257,12 @@ export const ProjectForm = ({
           return false;
         });
       
+      // ⚡ PERFORMANCE: Early return if items haven't changed and no triggered status
+      if (!itemsChanged && !triggeredStatus) {
+        console.log('[ProjectForm] No item changes detected, skipping update');
+        return currentFormData; // Return unchanged to prevent re-render
+      }
+      
       // ✅ FIX: Smart type management using separate manual types state
       // Keep types from TWO sources:
       // 1. Manual types: Explicitly added by user via dropdown (tracked in separate state)
@@ -271,6 +271,13 @@ export const ProjectForm = ({
       
       const autoTypes = [...new Set(illustrationTypesFromItems)];
       const allTypes = [...new Set([...manualIllustrationTypes, ...autoTypes])];
+      
+      // Check if types have actually changed
+      const existingTypesSet = new Set(currentFormData.types || []);
+      const newTypesSet = new Set(allTypes);
+      const typesChanged = 
+        existingTypesSet.size !== newTypesSet.size ||
+        [...existingTypesSet].some(type => !newTypesSet.has(type));
       
       // ⚡ CRITICAL FIX: Calculate project-level status from actionable items
       // This prevents visual jumping when items move between status groups
@@ -308,17 +315,10 @@ export const ProjectForm = ({
         projectStatus = currentFormData.status || 'Not Started';
       }
       
-      // Check if types have actually changed
-      const existingTypesSet = new Set(currentFormData.types || []);
-      const newTypesSet = new Set(allTypes);
-      const typesChanged = 
-        existingTypesSet.size !== newTypesSet.size ||
-        [...existingTypesSet].some(type => !newTypesSet.has(type));
-      
-      // Only update if something actually changed
+      // Final check: only update if something actually changed
       const statusChanged = projectStatus !== currentFormData.status;
-      if (!itemsChanged && !statusChanged && !typesChanged && !triggeredStatus) {
-        console.log('[ProjectForm] No changes detected, skipping update');
+      if (!itemsChanged && !statusChanged && !typesChanged) {
+        console.log('[ProjectForm] No meaningful changes after calculation, skipping update');
         return currentFormData; // Return unchanged to prevent re-render
       }
       
@@ -334,7 +334,7 @@ export const ProjectForm = ({
       onFormDataChange(newData);
       return newData;
     });
-  }, [onFormDataChange]);
+  }, [onFormDataChange, manualIllustrationTypes]); // ✅ FIX: Added manualIllustrationTypes to prevent stale closure
 
   const handleAllItemsCompleted = () => {
     updateData('status', 'Done' as ProjectStatus);
@@ -475,23 +475,6 @@ export const ProjectForm = ({
                       {type}
                     </Badge>
                     <div className="flex gap-1">
-                      <TypeColorPicker
-                        color={typeColors[type] || '#6b7280'}
-                        onChange={(color) => updateTypeColor(type, color)}
-                        trigger={
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 border border-muted rounded"
-                          >
-                            <div 
-                              className="w-4 h-4 rounded-full"
-                              style={{ backgroundColor: typeColors[type] || '#6b7280' }}
-                            />
-                          </Button>
-                        }
-                      />
                       <Button
                         type="button"
                         variant="ghost"

@@ -142,13 +142,7 @@ export function ProjectDetail({
   // Form data change handler - using ref to avoid re-render
   const handleFormDataChange = useCallback((data: ProjectFormData) => {
     console.log('ProjectDetail: Form data changed:', data);
-    setFormData(prev => {
-      // Only update if data actually changed to prevent unnecessary re-renders
-      if (JSON.stringify(prev) !== JSON.stringify(data)) {
-        return data;
-      }
-      return prev;
-    });
+    setFormData(data); // ✅ FIX: Remove comparison - let React handle it
   }, []);
 
   // Form submission
