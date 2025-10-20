@@ -31,18 +31,20 @@ export function DeliverablesCell({
   // Empty state with hover
   if (!hasLightroom && !hasGDrive) {
     return (
-      <div className="relative inline-flex items-center justify-center group">
-        {/* Dash - always visible, hides on hover */}
-        <span className="text-xs text-muted-foreground group-hover:opacity-0 transition-opacity">-</span>
+      <div className="relative inline-flex items-center justify-center">
+        {/* Dash - always visible, hides on cell hover */}
+        <span className={`text-xs text-muted-foreground transition-opacity ${isHovered ? 'opacity-0' : 'opacity-100'}`}>-</span>
         
-        {/* Plus button - hidden by default, shows on hover */}
+        {/* Plus button - hidden by default, shows on cell hover */}
         {(onAddLightroom || onAddGDrive) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute h-7 w-7 p-0 rounded-full hover:bg-accent transition-all duration-200 hover:scale-105 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+                className={`absolute h-7 w-7 p-0 rounded-full hover:bg-accent transition-all duration-200 hover:scale-105 ${
+                  isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <Plus className="h-4 w-4 text-muted-foreground" />
