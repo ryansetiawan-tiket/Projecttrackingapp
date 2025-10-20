@@ -209,121 +209,129 @@ export function SettingsPage({
           </TabsList>
 
           <TabsContent value="admin" className="mt-6">
-            <div className="space-y-6">
-              {/* Admin Profile */}
-              <AdminProfileManager />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Admin Profile */}
+              <div className="space-y-6">
+                <AdminProfileManager />
+              </div>
               
-              {/* Admin Preferences */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <CardTitle>Admin Preferences</CardTitle>
-                      <CardDescription className="mt-1">
-                        Personalize your admin experience
-                      </CardDescription>
+              {/* Right Column: Admin Preferences */}
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <CardTitle>Admin Preferences</CardTitle>
+                        <CardDescription className="mt-1">
+                          Personalize your admin experience
+                        </CardDescription>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Default Email for Login */}
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="default-email">Default Login Email</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        This email will be auto-filled on the login page
-                      </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Default Email for Login */}
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="default-email">Default Login Email</Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          This email will be auto-filled on the login page
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="default-email"
+                          type="email"
+                          placeholder="your.email@example.com"
+                          value={defaultEmail}
+                          onChange={(e) => setDefaultEmail(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button onClick={handleSaveDefaultEmail}>
+                          Save
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Input
-                        id="default-email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        value={defaultEmail}
-                        onChange={(e) => setDefaultEmail(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button onClick={handleSaveDefaultEmail}>
-                        Save
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="app-settings" className="mt-6">
-            <div className="space-y-6">
-              {/* Application Title */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Sliders className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <CardTitle>App Settings</CardTitle>
-                      <CardDescription className="mt-1">
-                        Customize the application title and branding
-                      </CardDescription>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: App Title & Table Column Order */}
+              <div className="space-y-6">
+                {/* Application Title */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Sliders className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <CardTitle>App Settings</CardTitle>
+                        <CardDescription className="mt-1">
+                          Customize the application title and branding
+                        </CardDescription>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Admin-Only Notice */}
-                  {!isAdmin && (
-                    <div className="rounded-lg bg-muted/50 border border-border p-4">
-                      <p className="text-sm text-muted-foreground">
-                        🔒 Only admins can modify app settings
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* App Title */}
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="app-title">Application Title</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        This title appears in the dashboard header
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        id="app-title"
-                        type="text"
-                        placeholder="Ryan Setiawan's Tracker"
-                        value={appTitle}
-                        onChange={(e) => setAppTitle(e.target.value)}
-                        disabled={!isAdmin || appSettingsLoading}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={handleSaveAppTitle}
-                        disabled={!isAdmin || appSettingsLoading || appTitle === appSettings.title}
-                      >
-                        {appSettingsLoading ? 'Saving...' : 'Save'}
-                      </Button>
-                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Admin-Only Notice */}
+                    {!isAdmin && (
+                      <div className="rounded-lg bg-muted/50 border border-border p-4">
+                        <p className="text-sm text-muted-foreground">
+                          🔒 Only admins can modify app settings
+                        </p>
+                      </div>
+                    )}
                     
-                    {/* Preview */}
-                    <div className="rounded-lg bg-muted/30 border border-border p-4">
-                      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                      <h2 className="text-xl font-semibold text-foreground">{appTitle || 'App Title'}</h2>
+                    {/* App Title */}
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="app-title">Application Title</Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          This title appears in the dashboard header
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          id="app-title"
+                          type="text"
+                          placeholder="Ryan Setiawan's Tracker"
+                          value={appTitle}
+                          onChange={(e) => setAppTitle(e.target.value)}
+                          disabled={!isAdmin || appSettingsLoading}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={handleSaveAppTitle}
+                          disabled={!isAdmin || appSettingsLoading || appTitle === appSettings.title}
+                        >
+                          {appSettingsLoading ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                      
+                      {/* Preview */}
+                      <div className="rounded-lg bg-muted/30 border border-border p-4">
+                        <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                        <h2 className="text-xl font-semibold text-foreground">{appTitle || 'App Title'}</h2>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              {/* Table Column Order */}
-              <TableColumnOrderManager />
+                {/* Table Column Order */}
+                <TableColumnOrderManager />
+              </div>
 
-              {/* Status Group Order */}
-              <Separator />
-              <StatusGroupOrderManager />
+              {/* Right Column: Group Orders */}
+              <div className="space-y-6">
+                {/* Status Group Order */}
+                <StatusGroupOrderManager />
 
-              {/* Vertical Group Order */}
-              <Separator />
-              <VerticalGroupOrderManager />
+                {/* Vertical Group Order */}
+                <VerticalGroupOrderManager />
+              </div>
             </div>
           </TabsContent>
 
@@ -366,7 +374,9 @@ export function SettingsPage({
           </TabsContent>
 
           <TabsContent value="announcement" className="mt-6">
-            <AnnouncementManager isAdmin={isAdmin} />
+            <div className="max-w-4xl mx-auto">
+              <AnnouncementManager isAdmin={isAdmin} />
+            </div>
           </TabsContent>
 
           <TabsContent value="status" className="mt-6">

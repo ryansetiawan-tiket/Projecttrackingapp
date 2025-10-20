@@ -52,36 +52,31 @@ export function useAdminProfile(): UseAdminProfileResult {
     setError(null);
 
     try {
-      // Determine which token to use:
-      // - If user is logged in, use their accessToken (can update profile)
-      // - If user is NOT logged in, use publicAnonKey (read-only, for public view)
-      const authToken = accessToken || publicAnonKey;
-      const isPublicView = !accessToken;
+      // 🔒 If user is NOT logged in (public view), skip API call and use fallback profile
+      if (!accessToken) {
+        console.log(`[useAdminProfile] Public view - using fallback profile (no API call)`);
+        setProfile({
+          email: 'ryan.setiawan@tiket.com',
+          username: 'ryan.setiawan',
+          full_name: 'Ryan'
+        });
+        setLoading(false);
+        return; // Exit early
+      }
       
-      console.log(`[useAdminProfile] Loading profile ${isPublicView ? '(public view)' : `for: ${user?.email}`}`);
+      // User is logged in - fetch profile from database
+      console.log(`[useAdminProfile] Loading profile for: ${user?.email}`);
       
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-691c6bba/admin-profile`,
         {
           headers: {
-            'Authorization': `Bearer ${authToken}`
+            'Authorization': `Bearer ${accessToken}`
           }
         }
       );
 
       if (!response.ok) {
-        // If 401 Unauthorized and using public view (no accessToken), silently use fallback
-        if (response.status === 401 && !accessToken) {
-          console.log(`[useAdminProfile] Public view - using fallback profile (401 expected)`);
-          setProfile({
-            email: 'ryan.setiawan@tiket.com',
-            username: 'ryan.setiawan',
-            full_name: 'Ryan'
-          });
-          setLoading(false);
-          return; // Exit early, don't throw error
-        }
-        
         const errorText = await response.text().catch(() => response.statusText);
         throw new Error(`Failed to load profile (${response.status}): ${errorText}`);
       }
@@ -92,19 +87,11 @@ export function useAdminProfile(): UseAdminProfileResult {
         console.log(`[useAdminProfile] Loaded profile:`, data.profile);
         setProfile(data.profile);
       } else if (user?.email) {
-        // Initialize with default profile (only if logged in)
+        // Initialize with default profile from user email
         console.log(`[useAdminProfile] No profile found, initializing default`);
         setProfile({
           email: user.email,
           username: user.email.split('@')[0], // Default username from email
-        });
-      } else {
-        // Public view but no profile in database - set fallback
-        console.log(`[useAdminProfile] Public view - no profile found, using fallback`);
-        setProfile({
-          email: 'ryan.setiawan@tiket.com',
-          username: 'ryan.setiawan',
-          full_name: 'Ryan'
         });
       }
     } catch (err) {
@@ -118,7 +105,7 @@ export function useAdminProfile(): UseAdminProfileResult {
           username: user.email.split('@')[0],
         });
       } else {
-        // Public view fallback
+        // Should not reach here since we return early for public view
         setProfile({
           email: 'ryan.setiawan@tiket.com',
           username: 'ryan.setiawan',

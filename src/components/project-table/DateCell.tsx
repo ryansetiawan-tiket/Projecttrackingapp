@@ -42,9 +42,9 @@ export function DateCell({
 
   if (isPublicView) {
     return (
-      <div className="text-sm text-muted-foreground md:text-foreground text-left">
+      <span className="text-sm text-muted-foreground md:text-foreground">
         <DateWithQuarter dateString={dateString} showQuarter={!compactMode} />
-      </div>
+      </span>
     );
   }
 
@@ -54,7 +54,7 @@ export function DateCell({
       onOpenChange={(open) => onPopoverChange(open ? popoverId : null)}
     >
       <PopoverTrigger asChild>
-        <button className="text-sm text-muted-foreground md:text-foreground hover:text-primary transition-colors cursor-pointer text-left">
+        <button className="inline-block text-sm text-muted-foreground md:text-foreground hover:text-primary transition-colors cursor-pointer">
           <DateWithQuarter dateString={dateString} showQuarter={!compactMode} />
         </button>
       </PopoverTrigger>
