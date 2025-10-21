@@ -130,6 +130,7 @@ export interface OverviewData {
   highlights: {
     topVertical: TopVertical | null;
     fastestProject: FastestProject | null;
+    longestProject: LongestProject | null;
     mostActiveCollaborator: MostActiveCollaborator | null;
     bestWeek: BestPeriod | null;
   };
@@ -364,15 +365,16 @@ function getFastestProjectMessage(name: string, days: number): string {
 // ============================================================================
 
 function getLongestProject(projects: Project[]): LongestProject | null {
-  const completedProjects = projects.filter(p => isProjectCompleted(p) && p.start_date && p.completed_at);
+  // Filter projects with both start_date and due_date (planned duration)
+  const projectsWithTimeline = projects.filter(p => p.start_date && p.due_date);
   
-  if (completedProjects.length === 0) return null;
+  if (projectsWithTimeline.length === 0) return null;
   
-  let longest = completedProjects[0];
-  let maxDays = getProjectDuration(longest);
+  let longest = projectsWithTimeline[0];
+  let maxDays = getPlannedDuration(longest);
   
-  completedProjects.forEach(project => {
-    const duration = getProjectDuration(project);
+  projectsWithTimeline.forEach(project => {
+    const duration = getPlannedDuration(project);
     if (duration > maxDays) {
       maxDays = duration;
       longest = project;
@@ -386,6 +388,17 @@ function getLongestProject(projects: Project[]): LongestProject | null {
     days: maxDays,
     message
   };
+}
+
+function getPlannedDuration(project: Project): number {
+  if (!project.start_date || !project.due_date) return 0;
+  
+  const start = new Date(project.start_date);
+  const end = new Date(project.due_date);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays;
 }
 
 function getLongestProjectMessage(name: string, days: number): string {
@@ -868,6 +881,7 @@ export function calculateOverviewData(
     highlights: {
       topVertical: getTopVertical(projects, verticals),
       fastestProject: getFastestProject(projects),
+      longestProject: getLongestProject(projects),
       mostActiveCollaborator: getMostActiveCollaborator(projects, collaborators),
       bestWeek: getBestWeek(projects)
     },

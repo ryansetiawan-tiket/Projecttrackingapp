@@ -160,6 +160,16 @@ function Highlights({ data }: { data: OverviewData['highlights'] }) {
         </HighlightCard>
       )}
 
+      {/* Longest Project */}
+      {data.longestProject && (
+        <HighlightCard emoji="🐢" title="Longest Timeline">
+          <span className="font-semibold text-purple-600 dark:text-purple-400">
+            {data.longestProject.name}
+          </span>{' '}
+          — {data.longestProject.days} day{data.longestProject.days !== 1 ? 's' : ''} planned timeline, {data.longestProject.message}
+        </HighlightCard>
+      )}
+
       {/* Most Active Collaborator */}
       {data.mostActiveCollaborator && (
         <HighlightCard emoji="👥" title="Most Active Collaborator">
