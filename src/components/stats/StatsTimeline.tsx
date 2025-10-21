@@ -235,6 +235,44 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
       .slice(0, 10);
   }, [projects]);
 
+  // Fun subtitles based on data
+  const getOverdueSubtitle = () => {
+    if (timelineStats.overdueCount === 0) {
+      return "either you're super efficient, or forgot to log them 😉";
+    }
+    if (timelineStats.overdueCount === 1) return "we don't talk about this one 😬";
+    if (timelineStats.overdueCount <= 3) return "just a few stragglers 😅";
+    if (timelineStats.overdueCount <= 5) return "time to do some catching up! 🏃";
+    return "Houston, we have a problem 🚨";
+  };
+
+  const getDueWeekSubtitle = () => {
+    if (timelineStats.upcomingWeek === 0) return "clear skies ahead! ☀️";
+    if (timelineStats.upcomingWeek === 1) return "one on the horizon 🎯";
+    if (timelineStats.upcomingWeek <= 3) return "brace yourself 💪";
+    if (timelineStats.upcomingWeek <= 5) return "busy week incoming! 🔥";
+    return "sprint mode activated 🚀";
+  };
+
+  const getDueMonthSubtitle = () => {
+    if (timelineStats.upcomingMonth === 0) return "relax, it's chill 😎";
+    if (timelineStats.upcomingMonth <= 3) return "manageable pace 👌";
+    if (timelineStats.upcomingMonth <= 6) return "time to caffeinate ☕";
+    if (timelineStats.upcomingMonth <= 10) return "packed schedule ahead! 📅";
+    return "buckle up, it's gonna be wild! 🎢";
+  };
+
+  const getDurationSubtitle = () => {
+    const avg = timelineStats.avgDuration;
+    if (avg === 0) return "no data yet";
+    if (avg < 7) return "lightning fast! ⚡";
+    if (avg < 14) return "quick and efficient 🎯";
+    if (avg < 21) return "short and sweet! 🍭";
+    if (avg < 30) return "about a month per project";
+    if (avg < 60) return "taking your time, nice! 🐢";
+    return "marathon projects! 🏃‍♂️";
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -243,28 +281,28 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
           title="Overdue Projects"
           value={timelineStats.overdueCount}
           icon={AlertCircle}
-          subtitle={timelineStats.overdueCount > 0 ? 'Need attention' : 'All on track'}
+          subtitle={getOverdueSubtitle()}
         />
         
         <StatsCard
           title="Due This Week"
           value={timelineStats.upcomingWeek}
           icon={CalendarCheck}
-          subtitle="Next 7 days"
+          subtitle={getDueWeekSubtitle()}
         />
         
         <StatsCard
           title="Due This Month"
           value={timelineStats.upcomingMonth}
           icon={CalendarDays}
-          subtitle="Next 30 days"
+          subtitle={getDueMonthSubtitle()}
         />
         
         <StatsCard
           title="Avg Duration"
           value={timelineStats.avgDuration}
           icon={Clock}
-          subtitle="days per project"
+          subtitle={getDurationSubtitle()}
           isDuration={true}
         />
       </div>
@@ -272,10 +310,24 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
       {/* Overdue Projects Alert */}
       {overdueProjects.length > 0 && (
         <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 md:p-6">
-          <h3 className="mb-4 flex items-center gap-2 text-destructive text-sm md:text-base">
-            <AlertCircle className="h-4 w-4 md:h-5 md:w-5" />
-            Overdue Projects
-          </h3>
+          <div className="mb-4">
+            <h3 className="mb-1 flex items-center gap-2 text-destructive text-sm md:text-base">
+              <AlertCircle className="h-4 w-4 md:h-5 md:w-5" />
+              😬 The Overdue Zone
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const mostOverdue = overdueProjects[0];
+                if (mostOverdue.daysOverdue > 30) {
+                  return `${mostOverdue.project_name} is ${mostOverdue.daysOverdue} days late—might wanna check on that! 😰`;
+                }
+                if (overdueProjects.length === 1) {
+                  return `Just one project slipping by ${mostOverdue.daysOverdue} day${mostOverdue.daysOverdue === 1 ? '' : 's'}—no biggie!`;
+                }
+                return `${overdueProjects.length} projects need some love and attention 💔`;
+              })()}
+            </p>
+          </div>
           <div className="space-y-2">
             {overdueProjects.map(project => (
               <div key={project.id} className="flex items-start sm:items-center gap-2 p-2 rounded bg-background/50 flex-col sm:flex-row">
@@ -299,10 +351,30 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
       {/* Upcoming Deadlines */}
       {upcomingDeadlines.length > 0 && (
         <div className="bg-card rounded-lg border p-4 md:p-6">
-          <h3 className="mb-4 flex items-center gap-2 text-sm md:text-base">
-            <Calendar className="h-4 w-4 md:h-5 md:w-5" />
-            Upcoming Deadlines (Next 14 Days)
-          </h3>
+          <div className="mb-4">
+            <h3 className="mb-1 flex items-center gap-2 text-sm md:text-base">
+              <Calendar className="h-4 w-4 md:h-5 md:w-5" />
+              😰 What's Breathing Down Your Neck
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const todayCount = upcomingDeadlines.filter(d => d.daysUntil === 0).length;
+                const tomorrowCount = upcomingDeadlines.filter(d => d.daysUntil === 1).length;
+                const thisWeekCount = upcomingDeadlines.filter(d => d.daysUntil <= 7).length;
+                
+                if (todayCount > 0) {
+                  return `${todayCount} deadline${todayCount === 1 ? '' : 's'} TODAY—drop everything! 🔥`;
+                }
+                if (tomorrowCount > 0) {
+                  return `${tomorrowCount} due tomorrow—final sprint time! 💨`;
+                }
+                if (thisWeekCount > 0) {
+                  return `${thisWeekCount} deadline${thisWeekCount === 1 ? '' : 's'} this week—you got this! 💪`;
+                }
+                return `Next two weeks—plan ahead and stay calm! 🧘`;
+              })()}
+            </p>
+          </div>
           <div className="space-y-2">
             {upcomingDeadlines.map(project => (
               <div key={project.id} className="flex items-start sm:items-center gap-2 p-2 rounded hover:bg-muted/50 transition-colors flex-col sm:flex-row">
@@ -331,7 +403,27 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
         {/* Projects by Quarter */}
         {projectsByQuarter.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Projects by Quarter</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">📊 Peaks and Valleys</h3>
+              <p className="text-sm text-muted-foreground">
+                {(() => {
+                  const busiestQuarter = projectsByQuarter.reduce((max, q) => 
+                    (q.starting + q.ending) > (max.starting + max.ending) ? q : max
+                  , projectsByQuarter[0]);
+                  const quietestQuarter = projectsByQuarter.reduce((min, q) => 
+                    (q.starting + q.ending) < (min.starting + min.ending) ? q : min
+                  , projectsByQuarter[0]);
+                  
+                  const busiestTotal = busiestQuarter.starting + busiestQuarter.ending;
+                  const quietestTotal = quietestQuarter.starting + quietestQuarter.ending;
+                  
+                  if (busiestTotal === quietestTotal) {
+                    return "Steady pace across all quarters—consistency is key! 📈";
+                  }
+                  return `${busiestQuarter.quarter} was wild (${busiestTotal} projects), ${quietestQuarter.quarter} was chill (${quietestTotal} projects)`;
+                })()}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={projectsByQuarter}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -352,7 +444,24 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
         {/* Project Starts by Month */}
         {projectsByMonth.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Project Starts (Last 12 Months)</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">🚀 When You've Been the Busiest</h3>
+              <p className="text-sm text-muted-foreground">
+                {(() => {
+                  const maxProjects = Math.max(...projectsByMonth.map(m => m.projects));
+                  const busiestMonths = projectsByMonth.filter(m => m.projects === maxProjects);
+                  const totalStarts = projectsByMonth.reduce((sum, m) => sum + m.projects, 0);
+                  
+                  if (maxProjects === 0) {
+                    return "No project starts in the last year—time to kick things off! 🎬";
+                  }
+                  if (busiestMonths.length === 1) {
+                    return `${busiestMonths[0].month} was your peak with ${maxProjects} starts—what a month! 🔥`;
+                  }
+                  return `${totalStarts} projects started over 12 months—keeping busy! 💼`;
+                })()}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={projectsByMonth}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -369,7 +478,27 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
         {/* Duration Distribution */}
         {durationDistribution.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Project Duration Distribution</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">⏱️ How Long You Usually Grind</h3>
+              <p className="text-sm text-muted-foreground">
+                {(() => {
+                  const maxCount = Math.max(...durationDistribution.map(d => d.count));
+                  const mostCommon = durationDistribution.find(d => d.count === maxCount);
+                  const quickProjects = durationDistribution.filter(d => 
+                    d.range.includes('week')).reduce((sum, d) => sum + d.count, 0);
+                  const longProjects = durationDistribution.filter(d => 
+                    d.range.includes('month')).reduce((sum, d) => sum + d.count, 0);
+                  
+                  if (mostCommon?.range === '< 1 week') {
+                    return "Speed demon! Most projects wrap up in under a week ⚡";
+                  }
+                  if (quickProjects > longProjects) {
+                    return `You prefer quick wins—${quickProjects} projects under a month! 🎯`;
+                  }
+                  return `Most projects take ${mostCommon?.range.toLowerCase()}—marathon mode! 🏃`;
+                })()}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={durationDistribution}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -384,12 +513,28 @@ export function StatsTimeline({ projects }: StatsTimelineProps) {
         )}
       </div>
 
+      {/* No Overdue Celebration */}
+      {overdueProjects.length === 0 && upcomingDeadlines.length === 0 && projects.length > 0 && (
+        <div className="text-center text-muted-foreground py-8 bg-card rounded-lg border">
+          <div className="text-4xl mb-3">🎉</div>
+          <p className="font-medium text-foreground mb-1">No Overdue Projects!</p>
+          <p className="text-sm">
+            Either you're super efficient, or you forgot to log them 😉
+          </p>
+        </div>
+      )}
+
       {/* Empty State */}
       {projects.length === 0 && (
         <div className="text-center text-muted-foreground py-12 bg-card rounded-lg border">
           <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No timeline data available</p>
-          <p className="text-sm mt-2">Start creating projects to see timeline statistics</p>
+          <p className="mb-2">No timeline data yet! 📅</p>
+          <p className="text-sm">
+            Start creating projects with dates to see your timeline stats
+          </p>
+          <p className="text-sm mt-1 text-muted-foreground/70">
+            (And remember: deadlines are just suggestions... right? 😅)
+          </p>
         </div>
       )}
     </div>

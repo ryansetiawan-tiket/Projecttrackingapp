@@ -139,10 +139,18 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
         const lightroomCount = (project.lightroom_assets || []).length;
         const totalCount = gdriveCount + lightroomCount;
 
+        // Get first type for display purposes
+        let displayType = 'No Type';
+        if (project.types && Array.isArray(project.types) && project.types.length > 0) {
+          displayType = project.types[0];
+        } else if (project.type) {
+          displayType = project.type;
+        }
+
         return {
           projectName: project.project_name,
           assetCount: totalCount,
-          type: project.type || 'No Type'
+          type: displayType
         };
       })
       .filter(p => p.assetCount > 0)
@@ -157,8 +165,18 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
     projects.forEach(project => {
       const assetCount = (project.gdrive_assets || []).length + (project.lightroom_assets || []).length;
       if (assetCount > 0) {
-        const type = project.type || 'No Type';
-        typeMap.set(type, (typeMap.get(type) || 0) + assetCount);
+        // Handle both new format (types array) and old format (single type)
+        if (project.types && Array.isArray(project.types) && project.types.length > 0) {
+          // New format: distribute asset count across all types
+          project.types.forEach(type => {
+            const typeName = type || 'No Type';
+            typeMap.set(typeName, (typeMap.get(typeName) || 0) + assetCount);
+          });
+        } else {
+          // Old format: single type (backward compatibility)
+          const type = project.type || 'No Type';
+          typeMap.set(type, (typeMap.get(type) || 0) + assetCount);
+        }
       }
     });
 
@@ -171,6 +189,60 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
       .slice(0, 8);
   }, [projects]);
 
+  // Fun subtitles based on data
+  const getTotalAssetsSubtitle = () => {
+    const count = assetStats.totalAssets;
+    if (count === 0) return "time to start collecting!";
+    if (count === 1) return "one is better than zero! 🎉";
+    if (count < 5) return "just getting started 🌱";
+    if (count < 10) return "baby steps to greatness!";
+    if (count < 25) return "building up nicely 📈";
+    if (count < 50) return "nice little collection!";
+    if (count < 100) return "that's a lot of files to keep track of 👀";
+    if (count < 200) return "impressive file hoard! 📚";
+    if (count < 500) return "you're basically a digital librarian now 📖";
+    return "asset empire unlocked! 🏰";
+  };
+
+  const getGDriveSubtitle = () => {
+    const count = assetStats.gdriveAssets;
+    if (count === 0) return "no GDrive assets yet";
+    if (count === 1) return "one lonely file 🥺";
+    const ratio = assetStats.totalAssets > 0 ? count / assetStats.totalAssets : 0;
+    if (ratio > 0.9) return "basically 100% GDrive at this point ⭐";
+    if (ratio > 0.8) return "clearly the favorite child ⭐";
+    if (ratio > 0.6) return "the main hub 📂";
+    if (ratio > 0.4) return "solid GDrive game 💪";
+    if (count < 5) return "room to grow! 🌱";
+    return `${assetStats.gdriveFiles} files, ${assetStats.gdriveFolders} folders`;
+  };
+
+  const getLightroomSubtitle = () => {
+    const count = assetStats.lightroomAssets;
+    if (count === 0) return "no Lightroom assets yet";
+    if (count === 1) return "one precious photo! 📸";
+    const ratio = assetStats.totalAssets > 0 ? count / assetStats.totalAssets : 0;
+    if (ratio > 0.8) return "Lightroom enthusiast spotted! 📸";
+    if (ratio > 0.5) return "photo powerhouse! 📸";
+    if (ratio < 0.1) return "the underdog! 🐶";
+    if (ratio < 0.2) return "still trying to catch up! 🏃";
+    if (count < 5) return "just warming up 🔥";
+    return `${assetStats.lightroomFiles} files, ${assetStats.lightroomFolders} folders`;
+  };
+
+  const getAvgSubtitle = () => {
+    const avg = assetStats.avgAssetsPerProject;
+    if (avg === 0) return "no projects with assets yet";
+    if (avg < 2) return "super minimal vibes ✨";
+    if (avg < 5) return "keeping it minimal ✨";
+    if (avg < 8) return "nice and balanced 👌";
+    if (avg < 10) return "healthy amount per project!";
+    if (avg < 15) return "solid collection rate 📦";
+    if (avg < 20) return "pretty solid hoarding rate 📦";
+    if (avg < 30) return "asset collector extraordinaire! 🎯";
+    return "you might have a hoarding problem... kidding! 😅";
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -179,28 +251,28 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
           title="Total Assets"
           value={assetStats.totalAssets}
           icon={Package}
-          subtitle="All deliverables"
+          subtitle={getTotalAssetsSubtitle()}
         />
         
         <StatsCard
           title="Google Drive"
           value={assetStats.gdriveAssets}
           icon={FolderOpen}
-          subtitle={`${assetStats.gdriveFiles} files, ${assetStats.gdriveFolders} folders`}
+          subtitle={getGDriveSubtitle()}
         />
         
         <StatsCard
           title="Lightroom"
           value={assetStats.lightroomAssets}
           icon={Image}
-          subtitle={`${assetStats.lightroomFiles} files, ${assetStats.lightroomFolders} folders`}
+          subtitle={getLightroomSubtitle()}
         />
         
         <StatsCard
           title="Avg per Project"
           value={assetStats.avgAssetsPerProject.toFixed(1)}
           icon={Package}
-          subtitle={`${assetStats.projectsWithAssets} projects with assets`}
+          subtitle={getAvgSubtitle()}
         />
       </div>
 
@@ -209,7 +281,16 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
         {/* Assets by Platform */}
         {assetsByPlatform.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Assets by Platform</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">📍 Where Your Files Actually Live</h3>
+              <p className="text-sm text-muted-foreground">
+                {assetStats.gdriveAssets > assetStats.lightroomAssets 
+                  ? "GDrive's winning the storage wars"
+                  : assetStats.lightroomAssets > assetStats.gdriveAssets
+                  ? "Lightroom's got the crown!"
+                  : "Perfectly balanced, as all things should be"}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -236,7 +317,20 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
         {/* Files vs Folders */}
         {filesVsFolders.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Files vs Folders</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">🗂️ Chaos vs Organization</h3>
+              <p className="text-sm text-muted-foreground">
+                {(() => {
+                  const totalFiles = assetStats.gdriveFiles + assetStats.lightroomFiles;
+                  const totalFolders = assetStats.gdriveFolders + assetStats.lightroomFolders;
+                  const ratio = totalFolders > 0 ? totalFiles / totalFolders : 0;
+                  if (ratio > 10) return "Lots of files, minimal folders—bold strategy!";
+                  if (ratio > 5) return "Good folder-to-file ratio, you're organized!";
+                  if (ratio < 2) return "Folder enthusiast detected 📁";
+                  return "Nice balance between structure and content";
+                })()}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -264,7 +358,20 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
       {/* Assets by Project Type */}
       {assetsByProjectType.length > 0 && (
         <div className="bg-card rounded-lg border p-6">
-          <h3 className="mb-4">Assets by Project Type</h3>
+          <div className="mb-4">
+            <h3 className="mb-1">🎨 What You Make the Most</h3>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const topType = assetsByProjectType[0];
+                const totalTypeAssets = assetsByProjectType.reduce((sum, t) => sum + t.count, 0);
+                const topPercent = (topType.count / totalTypeAssets * 100).toFixed(0);
+                if (assetsByProjectType.length === 1) {
+                  return `All-in on ${topType.type}—focus is key! 🎯`;
+                }
+                return `${topType.type} dominates with ${topPercent}% of your assets`;
+              })()}
+            </p>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={assetsByProjectType}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -281,7 +388,23 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
       {/* Top Projects by Asset Count */}
       {topProjectsByAssets.length > 0 && (
         <div className="bg-card rounded-lg border p-6">
-          <h3 className="mb-4">Top Projects by Asset Count</h3>
+          <div className="mb-4">
+            <h3 className="mb-1">🏆 The Most File-Hungry Projects</h3>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const topProject = topProjectsByAssets[0];
+                const secondProject = topProjectsByAssets[1];
+                if (!secondProject) {
+                  return `${topProject.projectName} stands alone with ${topProject.assetCount} assets`;
+                }
+                const gap = topProject.assetCount - secondProject.assetCount;
+                if (gap > 20) {
+                  return `${topProject.projectName} absolutely crushing it with ${topProject.assetCount} assets!`;
+                }
+                return `${topProject.projectName} leads the pack with ${topProject.assetCount} assets`;
+              })()}
+            </p>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topProjectsByAssets} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -299,8 +422,13 @@ export function StatsAssets({ projects, statuses }: StatsAssetsProps) {
       {assetStats.totalAssets === 0 && (
         <div className="text-center text-muted-foreground py-12 bg-card rounded-lg border">
           <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No assets found in projects</p>
-          <p className="text-sm mt-2">Start adding GDrive or Lightroom assets to see statistics</p>
+          <p className="mb-2">No assets found yet! 📦</p>
+          <p className="text-sm">
+            Start adding GDrive or Lightroom assets to your projects
+          </p>
+          <p className="text-sm mt-1 text-muted-foreground/70">
+            (Pro tip: Assets make everything better ✨)
+          </p>
         </div>
       )}
     </div>

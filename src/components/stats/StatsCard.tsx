@@ -48,7 +48,7 @@ export function StatsCard({
     const emojiIcon = typeof icon === 'string' ? icon : null;
 
     return (
-      <Card className={`bg-[#121212] border-[#3a3a3a] ${className}`}>
+      <Card className={className}>
         <CardContent className="p-6 space-y-3 text-center">
           {/* Icon */}
           {emojiIcon && <div className="text-4xl">{emojiIcon}</div>}
@@ -66,7 +66,7 @@ export function StatsCard({
           
           {/* Label */}
           {label && (
-            <div className="text-sm font-medium text-neutral-200">
+            <div className="text-sm font-medium">
               {label}
             </div>
           )}

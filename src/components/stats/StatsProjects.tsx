@@ -1,17 +1,16 @@
 import { useMemo } from 'react';
 import { Project } from '../../types/project';
 import { Vertical } from '../../hooks/useVerticals';
-import { StatsCard } from './StatsCard';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { TrendingUp, Clock, Calendar } from 'lucide-react';
+import { Badge } from '../ui/badge';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   calculatePercentage,
   calculateDaysBetween,
   isProjectCompleted,
   isValidDate
 } from '../../utils/statsCalculations';
-import { formatForPieChart, formatForBarChart, CHART_COLOR_ARRAY } from '../../utils/chartHelpers';
+import { HighlightCard } from './HighlightCard';
 
 interface StatsProjectsProps {
   projects: Project[];
@@ -147,23 +146,197 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
     };
   }, [projects, statuses, types, typeColors, verticals]);
   
+  // ============================================================================
+  // HELPER FUNCTIONS FOR QUIRKY CAPTIONS
+  // ============================================================================
+  
+  const getVerticalQuirk = () => {
+    if (stats.byVertical.length === 0) return null;
+    const top = stats.byVertical[0];
+    
+    const quirks = [
+      `${top.vertical} projects dominating like it's their world (${top.percentage}%)`,
+      `${top.vertical} taking the lead with ${top.percentage}% — clearly the favorite child`,
+      `${top.vertical} crushing it at ${top.percentage}% — no competition here`,
+      `${top.percentage}% ${top.vertical}? Someone's feeling very ${top.vertical.toLowerCase()}-ish lately 😎`,
+    ];
+    
+    if (stats.byVertical.length === 1) {
+      return `Only ${top.vertical}? Talk about commitment! 💯`;
+    }
+    
+    if (top.percentage >= 50) {
+      return quirks[0];
+    } else if (top.percentage >= 35) {
+      return quirks[1];
+    } else {
+      return quirks[2];
+    }
+  };
+  
+  const getTypeQuirk = () => {
+    if (stats.byType.length === 0) return null;
+    const top = stats.byType[0];
+    
+    const typeQuirks: Record<string, string[]> = {
+      'Banner': [
+        `Banner gang stays undefeated (${top.percentage}%) — guess we love rectangles`,
+        `${top.percentage}% Banners? Rectangle supremacy confirmed 📐`,
+      ],
+      'Social Media': [
+        `Social Media at ${top.percentage}% — someone's chronically online 📱`,
+        `${top.percentage}% Social? We're basically influencers at this point 🤳`,
+      ],
+      'Email': [
+        `Email dominating at ${top.percentage}% — inbox heroes unite 📧`,
+        `${top.percentage}% Email? Somebody loves a good newsletter 💌`,
+      ],
+      'Video': [
+        `Video leading with ${top.percentage}% — mini Spielberg vibes 🎬`,
+        `${top.percentage}% Video content? Hollywood called, they're jealous 🎥`,
+      ],
+    };
+    
+    if (stats.byType.length === 1) {
+      return `One type to rule them all: ${top.type}! 👑`;
+    }
+    
+    const customQuirks = typeQuirks[top.type];
+    if (customQuirks) {
+      return customQuirks[0];
+    }
+    
+    return `${top.type} at ${top.percentage}% — the clear winner here 🏆`;
+  };
+  
+  const getDurationNarrative = (days: number, projectName: string, type: 'average' | 'longest' | 'shortest') => {
+    if (type === 'average') {
+      if (days <= 3) return `${days} day${days !== 1 ? 's' : ''} — speedrun mode activated ⚡`;
+      if (days <= 7) return `${days} days — quick and efficient, love to see it 🚀`;
+      if (days <= 14) return `${days} days — solid two-week sprint vibes 📅`;
+      if (days <= 30) return `${days} days — just enough time for a mini drama series 🎭`;
+      if (days <= 60) return `${days} days — a proper monthly commitment 📆`;
+      return `${days} days — we're in it for the long haul 🏔️`;
+    }
+    
+    if (type === 'longest') {
+      const months = Math.floor(days / 30);
+      const remainingDays = days % 30;
+      let timeStr = '';
+      
+      if (months > 0 && remainingDays > 0) {
+        timeStr = `${months} month${months !== 1 ? 's' : ''} ${remainingDays} day${remainingDays !== 1 ? 's' : ''}`;
+      } else if (months > 0) {
+        timeStr = `${months} month${months !== 1 ? 's' : ''}`;
+      } else {
+        timeStr = `${days} day${days !== 1 ? 's' : ''}`;
+      }
+      
+      return (
+        <>
+          <span className="font-semibold text-blue-600 dark:text-blue-400">{timeStr}</span>
+          {' — '}
+          <span className="italic">{projectName}</span>
+          {days >= 90 ? ", truly an epic saga 📖" : days >= 60 ? ", quite the journey 🗺️" : ", taking its sweet time 🐌"}
+        </>
+      );
+    }
+    
+    if (type === 'shortest') {
+      return (
+        <>
+          <span className="font-semibold text-green-600 dark:text-green-400">{days} day{days !== 1 ? 's' : ''}</span>
+          {' — '}
+          <span className="italic">{projectName}</span>
+          {days === 1 ? ". Blink and it's done ⚡" : ". Quick work! 🏃"}
+        </>
+      );
+    }
+    
+    return '';
+  };
+  
+  const getProjectVibesRecap = () => {
+    const messages: string[] = [];
+    
+    // Status vibe
+    const activePercent = calculatePercentage(stats.activeProjects, projects.length);
+    const completedPercent = calculatePercentage(stats.completedProjects, projects.length);
+    
+    if (completedPercent >= 70) {
+      messages.push("You're on fire with completions 🔥");
+    } else if (completedPercent >= 50) {
+      messages.push("Nice balance of done and ongoing work 👌");
+    } else if (activePercent >= 70) {
+      messages.push("Lots of irons in the fire right now 🔧");
+    } else {
+      messages.push("Building up that project pipeline 🚀");
+    }
+    
+    // Vertical/Type vibe
+    if (stats.byVertical.length > 0 && stats.byType.length > 0) {
+      const topVertical = stats.byVertical[0];
+      const topType = stats.byType[0];
+      
+      if (topVertical.percentage >= 60 || topType.percentage >= 60) {
+        messages.push(`Mostly ${topVertical.vertical} and ${topType.type} work lately — someone's found their groove 😎`);
+      } else if (stats.byVertical.length >= 3 && stats.byType.length >= 3) {
+        messages.push("Great variety across verticals and types — keeping it fresh! 🎨");
+      } else {
+        messages.push(`Focus mode: ${topVertical.vertical} × ${topType.type} combo 🎯`);
+      }
+    }
+    
+    // Duration vibe
+    if (stats.duration.average > 0) {
+      if (stats.duration.average <= 7) {
+        messages.push("Quick turnarounds are your specialty ⚡");
+      } else if (stats.duration.average >= 30) {
+        messages.push("Patient with the process — marathon runner energy 🏃‍♂️");
+      }
+    }
+    
+    return messages.join(' • ');
+  };
+  
   return (
     <div className="space-y-6">
-      {/* Active & Completed Projects */}
+      {/* Active & Completed Projects - Fun Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsCard
-          title="Active Projects"
-          value={stats.activeProjects}
-          icon={TrendingUp}
-          subtitle={`${calculatePercentage(stats.activeProjects, projects.length)}% of total`}
-        />
+        <HighlightCard 
+          emoji="🔥" 
+          title="Still Cooking"
+        >
+          <div className="space-y-2">
+            <div>
+              <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.activeProjects}</span>
+              <span className="text-lg text-muted-foreground ml-2">
+                project{stats.activeProjects !== 1 ? 's' : ''} on the stove
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              That's {calculatePercentage(stats.activeProjects, projects.length)}% of everything you're managing. Keep cooking! 👨‍🍳
+            </p>
+          </div>
+        </HighlightCard>
         
-        <StatsCard
-          title="Completed Projects"
-          value={stats.completedProjects}
-          icon={Calendar}
-          subtitle={`${calculatePercentage(stats.completedProjects, projects.length)}% of total`}
-        />
+        <HighlightCard 
+          emoji="✅" 
+          title="Mission Accomplished"
+        >
+          <div className="space-y-2">
+            <div>
+              <span className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.completedProjects}</span>
+              <span className="text-lg text-muted-foreground ml-2">
+                project{stats.completedProjects !== 1 ? 's' : ''} nailed!
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {calculatePercentage(stats.completedProjects, projects.length)}% completion rate.
+              {stats.completedProjects >= 10 ? " Legend status 🏆" : stats.completedProjects >= 5 ? " Nice work! 🎉" : " Every win counts! 💪"}
+            </p>
+          </div>
+        </HighlightCard>
       </div>
       
       {/* Vertical & Type Distribution */}
@@ -171,7 +344,12 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
         {/* Vertical Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Vertical Distribution</CardTitle>
+            <CardTitle className="text-base">📊 Vertical Distribution</CardTitle>
+            {getVerticalQuirk() && (
+              <p className="text-sm text-muted-foreground italic mt-1">
+                {getVerticalQuirk()}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             {stats.byVertical.length > 0 ? (
@@ -207,12 +385,12 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
                     <div key={index} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-3 h-3 rounded-sm"
+                          className="w-3 h-3 rounded-sm flex-shrink-0"
                           style={{ backgroundColor: entry.color }}
                         />
                         <span className="truncate">{entry.vertical}</span>
                       </div>
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground flex-shrink-0 ml-2">
                         {entry.count} ({entry.percentage}%)
                       </span>
                     </div>
@@ -221,7 +399,7 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
               </>
             ) : (
               <div className="text-center text-muted-foreground py-8">
-                No vertical data available
+                No vertical data available yet — time to categorize! 🏷️
               </div>
             )}
           </CardContent>
@@ -230,7 +408,12 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
         {/* Type Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Type Distribution</CardTitle>
+            <CardTitle className="text-base">🎨 Type Distribution</CardTitle>
+            {getTypeQuirk() && (
+              <p className="text-sm text-muted-foreground italic mt-1">
+                {getTypeQuirk()}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             {stats.byType.length > 0 ? (
@@ -266,12 +449,12 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
                     <div key={index} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-3 h-3 rounded-sm"
+                          className="w-3 h-3 rounded-sm flex-shrink-0"
                           style={{ backgroundColor: entry.color }}
                         />
                         <span className="truncate">{entry.type}</span>
                       </div>
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground flex-shrink-0 ml-2">
                         {entry.count} ({entry.percentage}%)
                       </span>
                     </div>
@@ -280,41 +463,70 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
               </>
             ) : (
               <div className="text-center text-muted-foreground py-8">
-                No type data available
+                No type data available yet — add some types! 🎯
               </div>
             )}
           </CardContent>
         </Card>
       </div>
       
-      {/* Duration Statistics */}
+      {/* Duration Statistics - Fun Narrative Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatsCard
-          title="Average Duration"
-          value={stats.duration.average > 0 ? stats.duration.average : 'N/A'}
-          icon={Clock}
-          subtitle={stats.duration.average > 0 ? 'Per project' : 'No data'}
-          isDuration={stats.duration.average > 0}
-        />
+        <HighlightCard emoji="🕒" title="Average Duration">
+          {stats.duration.average > 0 ? (
+            <div className="space-y-1">
+              <p className="text-base leading-relaxed">
+                {getDurationNarrative(stats.duration.average, '', 'average')}
+              </p>
+              <p className="text-xs text-muted-foreground">Per project timeline</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No timeline data yet — start adding dates! 📅
+            </p>
+          )}
+        </HighlightCard>
         
-        <StatsCard
-          title="Longest Project"
-          value={stats.duration.longest ? stats.duration.longest.days : 'N/A'}
-          icon={TrendingUp}
-          subtitle={stats.duration.longest ? stats.duration.longest.name : 'No data'}
-          isDuration={!!stats.duration.longest}
-        />
+        <HighlightCard emoji="🐢" title="Longest Project">
+          {stats.duration.longest ? (
+            <div className="space-y-1">
+              <p className="text-base leading-relaxed">
+                {getDurationNarrative(stats.duration.longest.days, stats.duration.longest.name, 'longest')}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No project durations recorded yet 🤷
+            </p>
+          )}
+        </HighlightCard>
         
-        <StatsCard
-          title="Shortest Project"
-          value={stats.duration.shortest ? stats.duration.shortest.days : 'N/A'}
-          icon={Calendar}
-          subtitle={stats.duration.shortest ? stats.duration.shortest.name : 'No data'}
-          isDuration={!!stats.duration.shortest}
-        />
+        <HighlightCard emoji="⚡" title="Shortest Project">
+          {stats.duration.shortest ? (
+            <div className="space-y-1">
+              <p className="text-base leading-relaxed">
+                {getDurationNarrative(stats.duration.shortest.days, stats.duration.shortest.name, 'shortest')}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No project durations recorded yet 🤷
+            </p>
+          )}
+        </HighlightCard>
       </div>
-      
 
+      {/* Project Vibes Recap - Summary Card */}
+      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-base">✨ Project Vibes Recap</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-base leading-relaxed">
+            {getProjectVibesRecap()}
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

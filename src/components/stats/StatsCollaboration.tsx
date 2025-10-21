@@ -169,6 +169,57 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
       .slice(0, 8);
   }, [collaboratorStats]);
 
+  // Fun subtitles based on data
+  const getTotalCollabSubtitle = () => {
+    const count = overallStats.totalCollaborators;
+    if (count === 0) return "time to build the dream team!";
+    if (count === 1) return "one amazing human! 🌟";
+    if (count === 2) return "dynamic duo energy! 💫";
+    if (count < 5) return "small but mighty crew 💪";
+    if (count < 10) return "nice team size!";
+    if (count < 15) return "growing the squad! 📈";
+    if (count < 20) return "and yes, it gets crowded in meetings 😅";
+    if (count < 30) return "that's a whole organization! 🏢";
+    return "basically a small city at this point 🌆";
+  };
+
+  const getAvgPerProjectSubtitle = () => {
+    const avg = overallStats.avgCollaboratorsPerProject;
+    if (avg === 0) return "no team data yet";
+    if (avg < 1.5) return "mostly solo missions 🥷";
+    if (avg < 2) return "keeping teams lean and mean 🎯";
+    if (avg < 3) return "teamwork makes the dream work! 🙌";
+    if (avg < 4) return "solid squad size!";
+    if (avg < 5) return "nice team momentum 🚂";
+    if (avg < 7) return "big teams for big projects! 👥";
+    return "all-hands-on-deck vibes! 🚢";
+  };
+
+  const getAvgPerCollabSubtitle = () => {
+    const avg = overallStats.avgProjectsPerCollaborator;
+    if (avg === 0) return "no projects assigned yet";
+    if (avg < 1.5) return "light workload 🪶";
+    if (avg < 2) return "focused workload 🎯";
+    if (avg < 2.5) return "balanced pace 👌";
+    if (avg < 3) return "multitaskers, unite! 🚀";
+    if (avg < 4) return "juggling like a pro!";
+    if (avg < 5) return "busy bees! 🐝";
+    if (avg < 7) return "workload champions! 💪";
+    return "superhero mode activated! 🦸";
+  };
+
+  const getProjectsWithTeamSubtitle = () => {
+    const soloCount = projects.length - overallStats.projectsWithCollaborators;
+    const teamCount = overallStats.projectsWithCollaborators;
+    if (teamCount === 0) return "all solo projects—lone wolves! 🐺";
+    if (teamCount === 1) return "one team project so far!";
+    if (soloCount === 0) return "solo players: 0, impressive! 🎉";
+    if (soloCount === 1) return "just one solo warrior 🥷";
+    if (soloCount < 3) return "mostly team efforts!";
+    if (soloCount < 5) return `${soloCount} solo missions 🎯`;
+    return `${soloCount} solo ${soloCount === 1 ? 'warrior' : 'warriors'} 🥷`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -177,35 +228,51 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
           title="Total Collaborators"
           value={overallStats.totalCollaborators}
           icon={Users}
-          subtitle={`${overallStats.activeCollaborators} currently active`}
+          subtitle={getTotalCollabSubtitle()}
         />
         
         <StatsCard
           title="Avg per Project"
           value={overallStats.avgCollaboratorsPerProject.toFixed(1)}
           icon={UserCheck}
-          subtitle="Average team size"
+          subtitle={getAvgPerProjectSubtitle()}
         />
         
         <StatsCard
           title="Avg per Collaborator"
           value={overallStats.avgProjectsPerCollaborator.toFixed(1)}
           icon={Briefcase}
-          subtitle="Average workload"
+          subtitle={getAvgPerCollabSubtitle()}
         />
         
         <StatsCard
           title="Projects with Team"
           value={overallStats.projectsWithCollaborators}
           icon={Award}
-          subtitle={`${projects.length - overallStats.projectsWithCollaborators} solo`}
+          subtitle={getProjectsWithTeamSubtitle()}
         />
       </div>
 
       {/* Top Collaborators */}
       {topCollaborators.length > 0 && (
         <div className="bg-card rounded-lg border p-4 md:p-6">
-          <h3 className="mb-4">Most Active Collaborators</h3>
+          <div className="mb-4">
+            <h3 className="mb-1">👑 The Real MVPs</h3>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const topCollab = topCollaborators[0];
+                const secondCollab = topCollaborators[1];
+                if (!secondCollab) {
+                  return `${topCollab.name} is crushing it solo with ${topCollab.projectCount} projects!`;
+                }
+                const gap = topCollab.projectCount - secondCollab.projectCount;
+                if (gap > 5) {
+                  return `${topCollab.name} is way ahead with ${topCollab.projectCount} projects—unstoppable! 🔥`;
+                }
+                return `${topCollab.name} leads with ${topCollab.projectCount} projects, but it's competitive!`;
+              })()}
+            </p>
+          </div>
           <div className="space-y-3">
             {topCollaborators.map((collab, index) => (
               <div key={collab.id} className="flex items-center gap-2 md:gap-4 p-2 md:p-3 rounded-lg hover:bg-muted/50 transition-colors">
@@ -257,7 +324,23 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
         {/* Role Distribution */}
         {roleDistribution.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Collaborators by Role</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">🎭 Who Does What</h3>
+              <p className="text-sm text-muted-foreground">
+                {(() => {
+                  const topRole = roleDistribution[0];
+                  const totalPeople = roleDistribution.reduce((sum, r) => sum + r.count, 0);
+                  const topPercent = (topRole.count / totalPeople * 100).toFixed(0);
+                  if (roleDistribution.length === 1) {
+                    return `Everyone's a ${topRole.role}—specialists unite! 🎯`;
+                  }
+                  if (topRole.role === 'Product Designer') {
+                    return `Product Designers are everywhere, again. (${topPercent}%)`;
+                  }
+                  return `${topRole.role}s dominate with ${topPercent}% of the team`;
+                })()}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -269,6 +352,7 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="count"
+                  nameKey="role"
                 >
                   {roleDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -284,7 +368,22 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
         {/* Project Collaborator Distribution */}
         {projectCollabDistribution.length > 0 && (
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="mb-4">Projects by Team Size</h3>
+            <div className="mb-4">
+              <h3 className="mb-1">👥 How Big's the Squad?</h3>
+              <p className="text-sm text-muted-foreground">
+                {(() => {
+                  const soloProjects = projectCollabDistribution.find(d => d.range === 'Solo')?.count || 0;
+                  const bigTeams = projectCollabDistribution.find(d => d.range === '11+')?.count || 0;
+                  if (soloProjects > projects.length * 0.5) {
+                    return "Lots of solo missions—independent spirits! 🥷";
+                  }
+                  if (bigTeams > 0) {
+                    return `${bigTeams} project${bigTeams === 1 ? '' : 's'} with huge squads (11+ people!)`;
+                  }
+                  return "Most projects prefer cozy team sizes 👌";
+                })()}
+              </p>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={projectCollabDistribution}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -302,7 +401,22 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
       {/* Role Workload */}
       {roleWorkload.length > 0 && (
         <div className="bg-card rounded-lg border p-6">
-          <h3 className="mb-4">Workload by Role</h3>
+          <div className="mb-4">
+            <h3 className="mb-1">💪 Who's Carrying the Load</h3>
+            <p className="text-sm text-muted-foreground">
+              {(() => {
+                const busiestRole = roleWorkload[0];
+                const totalAllProjects = roleWorkload.reduce((sum, r) => sum + r.totalProjects, 0);
+                const busiestPercent = (busiestRole.totalProjects / totalAllProjects * 100).toFixed(0);
+                const activeRatio = busiestRole.activeProjects / busiestRole.totalProjects;
+                
+                if (activeRatio > 0.7) {
+                  return `${busiestRole.role}s are swamped—${busiestRole.activeProjects} active projects! 😰`;
+                }
+                return `${busiestRole.role}s lead with ${busiestPercent}% of total project assignments`;
+              })()}
+            </p>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={roleWorkload}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -321,8 +435,13 @@ export function StatsCollaboration({ projects }: StatsCollaborationProps) {
       {overallStats.totalCollaborators === 0 && (
         <div className="text-center text-muted-foreground py-12 bg-card rounded-lg border">
           <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No collaborators found in projects</p>
-          <p className="text-sm mt-2">Start adding team members to see collaboration statistics</p>
+          <p className="mb-2">No collaborators yet! 👥</p>
+          <p className="text-sm">
+            Start adding team members to your projects
+          </p>
+          <p className="text-sm mt-1 text-muted-foreground/70">
+            (Remember: teamwork makes the dream work! 🙌)
+          </p>
         </div>
       )}
     </div>

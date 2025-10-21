@@ -62,16 +62,16 @@ export function StatsOverview({ projects, statuses, verticals, collaborators = [
 
 function PerformanceSummary({ data }: { data: OverviewData['performanceSummary'] }) {
   return (
-    <Card className="bg-gradient-to-br from-[#1a1a1d] to-[#121212] border-[#3a3a3a]">
+    <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
       <CardHeader>
         <CardTitle className="text-lg">🧭 Performance Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Hero Message */}
         <div className="text-center">
-          <p className="text-xl md:text-2xl font-medium text-neutral-50">
+          <p className="text-xl md:text-2xl font-medium">
             You've managed{' '}
-            <span className="text-blue-400 font-bold">
+            <span className="text-blue-500 dark:text-blue-400 font-bold">
               {data.totalProjects} project{data.totalProjects !== 1 ? 's' : ''}
             </span>{' '}
             so far — wow, someone's been busy! 💼✨
@@ -82,7 +82,7 @@ function PerformanceSummary({ data }: { data: OverviewData['performanceSummary']
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Overall Progress</span>
-            <span className="text-3xl font-bold text-blue-400">
+            <span className="text-3xl font-bold text-blue-500 dark:text-blue-400">
               {data.completionRate}%
             </span>
           </div>
@@ -94,8 +94,8 @@ function PerformanceSummary({ data }: { data: OverviewData['performanceSummary']
         </div>
 
         {/* Completion Message */}
-        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a]">
-          <p className="text-base text-neutral-200 text-center">
+        <div className="bg-muted/30 rounded-lg p-4 border border-border">
+          <p className="text-base text-center">
             {data.completionMessage}
           </p>
         </div>
@@ -114,7 +114,7 @@ function PerformanceSummary({ data }: { data: OverviewData['performanceSummary']
                 </Avatar>
               ))}
               {data.totalCollaborators > 3 && (
-                <div className="h-8 w-8 rounded-full bg-[#2a2a2a] border-2 border-background flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center">
                   <span className="text-xs">+{data.totalCollaborators - 3}</span>
                 </div>
               )}
@@ -153,7 +153,7 @@ function Highlights({ data }: { data: OverviewData['highlights'] }) {
       {/* Fastest Project */}
       {data.fastestProject && (
         <HighlightCard emoji="⚡" title="Fastest Project">
-          <span className="font-semibold text-blue-400">
+          <span className="font-semibold text-blue-600 dark:text-blue-400">
             {data.fastestProject.name}
           </span>{' '}
           — finished in record time ({data.fastestProject.days} day{data.fastestProject.days !== 1 ? 's' : ''})!
@@ -207,7 +207,7 @@ function VerticalBreakdown({ data }: { data: OverviewData['verticalBreakdown'] }
   }));
 
   return (
-    <Card className="bg-[#121212] border-[#3a3a3a]">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <span>📊</span>
@@ -259,8 +259,8 @@ function VerticalBreakdown({ data }: { data: OverviewData['verticalBreakdown'] }
         </div>
 
         {/* Fun Caption */}
-        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a]">
-          <p className="text-sm text-center text-neutral-300 italic">
+        <div className="bg-muted/30 rounded-lg p-4 border border-border">
+          <p className="text-sm text-center text-muted-foreground italic">
             "{data.caption}"
           </p>
         </div>
@@ -291,14 +291,14 @@ function EfficiencyStats({ data }: { data: OverviewData['efficiencyStats'] }) {
         color="text-purple-400"
       />
       {data.longestProject && (
-        <Card className="bg-[#121212] border-[#3a3a3a] p-4">
+        <Card className="p-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🐌</span>
               <span className="text-sm text-muted-foreground">Longest Project</span>
             </div>
             <div className="space-y-1">
-              <div className="text-blue-400 truncate" title={data.longestProject.name}>
+              <div className="text-blue-600 dark:text-blue-400 truncate" title={data.longestProject.name}>
                 {data.longestProject.name}
               </div>
               <div className="flex items-baseline gap-1">
@@ -322,7 +322,7 @@ function EfficiencyStats({ data }: { data: OverviewData['efficiencyStats'] }) {
 
 function WeeklyPulse({ data }: { data: OverviewData['weeklyPulse'] }) {
   return (
-    <Card className="bg-[#121212] border-[#3a3a3a]">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <span>📅</span>
@@ -331,29 +331,29 @@ function WeeklyPulse({ data }: { data: OverviewData['weeklyPulse'] }) {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Main Message */}
-        <p className="text-base text-neutral-200 text-center">
+        <p className="text-base text-center">
           This week you created{' '}
-          <span className="font-bold text-blue-400">{data.projectsCreated} project{data.projectsCreated !== 1 ? 's' : ''}</span>, added{' '}
-          <span className="font-bold text-green-400">{data.assetsAdded} asset{data.assetsAdded !== 1 ? 's' : ''}</span>, and completed{' '}
-          <span className="font-bold text-purple-400">{data.actionsCompleted} action{data.actionsCompleted !== 1 ? 's' : ''}</span>.
+          <span className="font-bold text-blue-600 dark:text-blue-400">{data.projectsCreated} project{data.projectsCreated !== 1 ? 's' : ''}</span>, added{' '}
+          <span className="font-bold text-green-600 dark:text-green-400">{data.assetsAdded} asset{data.assetsAdded !== 1 ? 's' : ''}</span>, and completed{' '}
+          <span className="font-bold text-purple-600 dark:text-purple-400">{data.actionsCompleted} action{data.actionsCompleted !== 1 ? 's' : ''}</span>.
         </p>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center space-y-1">
-            <div className="text-3xl font-bold text-blue-400">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {data.projectsCreated}
             </div>
             <div className="text-xs text-muted-foreground">Projects</div>
           </div>
           <div className="text-center space-y-1">
-            <div className="text-3xl font-bold text-green-400">
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
               {data.assetsAdded}
             </div>
             <div className="text-xs text-muted-foreground">Assets</div>
           </div>
           <div className="text-center space-y-1">
-            <div className="text-3xl font-bold text-purple-400">
+            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
               {data.actionsCompleted}
             </div>
             <div className="text-xs text-muted-foreground">Actions</div>
@@ -361,11 +361,11 @@ function WeeklyPulse({ data }: { data: OverviewData['weeklyPulse'] }) {
         </div>
 
         {/* Trend Message */}
-        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a] flex items-center gap-3">
-          {data.trend === 'up' && <TrendingUp className="h-5 w-5 text-green-400 flex-shrink-0" />}
-          {data.trend === 'down' && <TrendingDown className="h-5 w-5 text-orange-400 flex-shrink-0" />}
+        <div className="bg-muted/30 rounded-lg p-4 border border-border flex items-center gap-3">
+          {data.trend === 'up' && <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />}
+          {data.trend === 'down' && <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />}
           {data.trend === 'same' && <div className="h-5 w-5 flex-shrink-0" />}
-          <p className="text-sm text-neutral-300 flex-1">{data.trendMessage}</p>
+          <p className="text-sm flex-1">{data.trendMessage}</p>
         </div>
       </CardContent>
     </Card>
@@ -378,7 +378,7 @@ function WeeklyPulse({ data }: { data: OverviewData['weeklyPulse'] }) {
 
 function TeamSnapshot({ data }: { data: OverviewData['teamSnapshot'] }) {
   return (
-    <Card className="bg-[#121212] border-[#3a3a3a]">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <span>👥</span>
@@ -387,9 +387,9 @@ function TeamSnapshot({ data }: { data: OverviewData['teamSnapshot'] }) {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Total Count */}
-        <p className="text-base text-neutral-200 text-center">
+        <p className="text-base text-center">
           You've worked with{' '}
-          <span className="font-bold text-blue-400">
+          <span className="font-bold text-blue-600 dark:text-blue-400">
             {data.totalCollaborators} unique collaborator{data.totalCollaborators !== 1 ? 's' : ''}
           </span>{' '}
           so far.
@@ -413,8 +413,8 @@ function TeamSnapshot({ data }: { data: OverviewData['teamSnapshot'] }) {
         )}
 
         {/* Top Squad Message */}
-        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a]">
-          <p className="text-sm text-neutral-300 text-center">
+        <div className="bg-muted/30 rounded-lg p-4 border border-border">
+          <p className="text-sm text-center">
             {data.topSquadMessage}
           </p>
         </div>
@@ -423,7 +423,7 @@ function TeamSnapshot({ data }: { data: OverviewData['teamSnapshot'] }) {
         {data.newCollaborators.length > 0 && (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground flex-wrap">
             <span>🎉 New joiners spotted:</span>
-            <span className="font-semibold text-green-400">
+            <span className="font-semibold text-green-600 dark:text-green-400">
               {data.newCollaborators.join(', ')} 👀
             </span>
           </div>
@@ -440,10 +440,10 @@ function TeamSnapshot({ data }: { data: OverviewData['teamSnapshot'] }) {
 function FunClosing({ message }: { message: string }) {
   return (
     <div className="flex justify-center">
-      <Card className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-blue-500/20 max-w-2xl w-full">
+      <Card className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-blue-500/20 dark:border-blue-500/30 max-w-2xl w-full">
         <CardContent className="p-8 text-center space-y-4">
           <div className="text-5xl">✨</div>
-          <p className="text-lg text-neutral-200 leading-relaxed">{message}</p>
+          <p className="text-lg leading-relaxed">{message}</p>
         </CardContent>
       </Card>
     </div>
