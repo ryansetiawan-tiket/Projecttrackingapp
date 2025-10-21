@@ -1797,120 +1797,111 @@ export function ActionableItemManager({
                   </SelectContent>
                 </Select>
 
-                {/* Assignee Selector - With Teams & Sub-teams */}
-                <Select
-                  value=""
-                  onValueChange={(value: string) => {
-                    // Check if it's a team or sub-team selection
-                    if (value.startsWith('team:')) {
-                      const teamId = value.replace('team:', '');
-                      const team = teams.find(t => t.id === teamId);
-                      if (team) {
-                        const memberIds = getAllTeamMemberIds(team);
-                        const collaboratorsToAdd = getCollaboratorsFromIds(memberIds, globalCollaborators);
+                {/* Assignee Selector - With Teams & Sub-teams - NOW WITH SEARCH! */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-8 text-xs w-full justify-start">
+                      <User className="h-3 w-3 mr-1.5" />
+                      Assign to...
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search collaborators..." className="h-8 text-xs" />
+                      <CommandList>
+                        <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
+                          No collaborators found.
+                        </CommandEmpty>
                         
-                        // Bulk add all team members at once
-                        handleBulkAddCollaboratorsToItem(item.id, collaboratorsToAdd);
-                      }
-                    } else if (value.startsWith('subteam:')) {
-                      const [teamId, subteamId] = value.replace('subteam:', '').split('::');
-                      const team = teams.find(t => t.id === teamId);
-                      if (team) {
-                        const memberIds = getSubteamMemberIds(team, subteamId);
-                        const collaboratorsToAdd = getCollaboratorsFromIds(memberIds, globalCollaborators);
-                        
-                        // Bulk add all sub-team members at once
-                        handleBulkAddCollaboratorsToItem(item.id, collaboratorsToAdd);
-                      }
-                    } else {
-                      // Regular collaborator selection
-                      const collaborator = globalCollaborators.find(c => c.id === value);
-                      if (collaborator && !getItemCollaborators(item).some(c => c.id === value)) {
-                        handleAddCollaboratorToItem(item.id, collaborator);
-                      }
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Assign to..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Teams & Sub-teams Section */}
-                    {!teamsLoading && teams.length > 0 && (
-                      <>
-                        <SelectGroup>
-                          <SelectLabel className="text-xs text-muted-foreground flex items-center gap-1.5">
-                            <Building2 className="h-3 w-3" />
-                            Quick Add Team/Sub-team
-                          </SelectLabel>
-                          {teams.map((team) => {
-                            const teamMemberIds = getAllTeamMemberIds(team);
-                            const teamHasMembers = teamMemberIds.length > 0;
-                            
-                            return (
-                              <div key={team.id}>
-                                {/* Team-level option */}
-                                {teamHasMembers && (
-                                  <SelectItem value={`team:${team.id}`} className="text-xs">
-                                    <div className="flex items-center gap-1.5">
-                                      <Building2 className="h-3 w-3" />
-                                      <span>{team.name}</span>
-                                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                                        {teamMemberIds.length}
-                                      </Badge>
-                                    </div>
-                                  </SelectItem>
-                                )}
-                                
-                                {/* Sub-teams */}
-                                {team.subteams.map((subteam) => {
-                                  const subteamHasMembers = subteam.memberIds.length > 0;
-                                  
-                                  return subteamHasMembers ? (
-                                    <SelectItem 
-                                      key={subteam.id} 
-                                      value={`subteam:${team.id}::${subteam.id}`} 
-                                      className="text-xs pl-8"
+                        {/* Teams & Sub-teams Section */}
+                        {!teamsLoading && teams.length > 0 && (
+                          <CommandGroup heading="Quick Add Team/Sub-team">
+                            {teams.map((team) => {
+                              const teamMemberIds = getAllTeamMemberIds(team);
+                              const teamHasMembers = teamMemberIds.length > 0;
+                              
+                              return (
+                                <div key={team.id}>
+                                  {/* Team-level option */}
+                                  {teamHasMembers && (
+                                    <CommandItem
+                                      value={`team:${team.name}`}
+                                      onSelect={() => {
+                                        const memberIds = getAllTeamMemberIds(team);
+                                        const collaboratorsToAdd = getCollaboratorsFromIds(memberIds, globalCollaborators);
+                                        handleBulkAddCollaboratorsToItem(item.id, collaboratorsToAdd);
+                                      }}
+                                      className="text-xs"
                                     >
                                       <div className="flex items-center gap-1.5">
-                                        <Users className="h-3 w-3" />
-                                        <span>{subteam.name}</span>
-                                        <Badge variant="outline" className="text-[10px] h-4 px-1">
-                                          {subteam.memberIds.length}
+                                        <Building2 className="h-3 w-3" />
+                                        <span>{team.name}</span>
+                                        <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                                          {teamMemberIds.length}
                                         </Badge>
                                       </div>
-                                    </SelectItem>
-                                  ) : null;
-                                })}
-                              </div>
-                            );
-                          })}
-                        </SelectGroup>
-                        <SelectSeparator />
-                      </>
-                    )}
-                    
-                    {/* Individual Collaborators */}
-                    <SelectGroup>
-                      <SelectLabel className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <User className="h-3 w-3" />
-                        Individual Collaborators
-                      </SelectLabel>
-                      {globalCollaborators
-                        .filter(collaborator => !getItemCollaborators(item).some(c => c.id === collaborator.id))
-                        .map((collaborator) => (
-                          <SelectItem key={collaborator.id} value={collaborator.id} className="text-xs">
-                            {collaborator.nickname || collaborator.name} ({collaborator.role})
-                          </SelectItem>
-                        ))}
-                      {globalCollaborators.filter(collaborator => !getItemCollaborators(item).some(c => c.id === collaborator.id)).length === 0 && (
-                        <SelectItem value="all-assigned" disabled className="text-xs text-muted-foreground">
-                          All collaborators assigned
-                        </SelectItem>
-                      )}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                                    </CommandItem>
+                                  )}
+                                  
+                                  {/* Sub-teams */}
+                                  {team.subteams.map((subteam) => {
+                                    const subteamHasMembers = subteam.memberIds.length > 0;
+                                    
+                                    return subteamHasMembers ? (
+                                      <CommandItem
+                                        key={subteam.id}
+                                        value={`subteam:${team.name} ${subteam.name}`}
+                                        onSelect={() => {
+                                          const memberIds = getSubteamMemberIds(team, subteam.id);
+                                          const collaboratorsToAdd = getCollaboratorsFromIds(memberIds, globalCollaborators);
+                                          handleBulkAddCollaboratorsToItem(item.id, collaboratorsToAdd);
+                                        }}
+                                        className="text-xs pl-8"
+                                      >
+                                        <div className="flex items-center gap-1.5">
+                                          <Users className="h-3 w-3" />
+                                          <span>{subteam.name}</span>
+                                          <Badge variant="outline" className="text-[10px] h-4 px-1">
+                                            {subteam.memberIds.length}
+                                          </Badge>
+                                        </div>
+                                      </CommandItem>
+                                    ) : null;
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </CommandGroup>
+                        )}
+                        
+                        {/* Individual Collaborators */}
+                        <CommandGroup heading="Individual Collaborators">
+                          {globalCollaborators
+                            .filter(collaborator => !getItemCollaborators(item).some(c => c.id === collaborator.id))
+                            .map((collaborator) => (
+                              <CommandItem
+                                key={collaborator.id}
+                                value={`${collaborator.nickname || collaborator.name} ${collaborator.role}`}
+                                onSelect={() => {
+                                  if (!getItemCollaborators(item).some(c => c.id === collaborator.id)) {
+                                    handleAddCollaboratorToItem(item.id, collaborator);
+                                  }
+                                }}
+                                className="text-xs"
+                              >
+                                {collaborator.nickname || collaborator.name} ({collaborator.role})
+                              </CommandItem>
+                            ))}
+                          {globalCollaborators.filter(collaborator => !getItemCollaborators(item).some(c => c.id === collaborator.id)).length === 0 && (
+                            <div className="py-2 px-2 text-xs text-muted-foreground text-center">
+                              All collaborators assigned
+                            </div>
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Workflow Selector - Show when workflow button is clicked */}
