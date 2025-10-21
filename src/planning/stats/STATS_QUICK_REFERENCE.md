@@ -1,8 +1,8 @@
 # Stats Feature - Quick Reference 📊
 
 **Status**: ✅ **COMPLETE**  
-**Version**: 2.1.0  
-**Date**: October 18, 2025
+**Version**: 2.2.0  
+**Date**: January 20, 2025
 
 ---
 
@@ -48,19 +48,23 @@
 
 ## 📂 Tab 2: Projects
 
+### Section Order (Top to Bottom)
+1. **Active & Completed Projects** (2 cards)
+2. **Vertical & Type Distribution** (2 pie charts)
+3. **Duration Statistics** (3 cards)
+
 ### Cards
-1. Total Projects
-2. Active Projects
-3. Completed Projects
-4. Average Duration
+1. Active Projects (with percentage)
+2. Completed Projects (with percentage)
+3. Average Duration
+4. Longest Project (with name)
+5. Shortest Project (with name)
 
 ### Charts
-1. Projects by Status (Bar)
-2. Projects by Type (Pie)
-3. Projects by Vertical (Pie)
-4. Quarter Distribution (Bar)
+1. Vertical Distribution (Pie Chart)
+2. Type Distribution (Pie Chart)
 
-**Key Feature**: Detailed project distribution analytics
+**Key Feature**: Logical information hierarchy (overview → distribution → details)
 
 ---
 
@@ -211,12 +215,25 @@
 
 ---
 
+## 🆕 Recent Updates
+
+### v2.2.0 - Projects Tab Layout Optimization
+- ✅ Reordered sections for better information hierarchy
+- ✅ Added Active/Completed overview cards at top
+- ✅ Removed redundant Quarter Distribution chart
+- ✅ Improved visual flow (overview → distribution → details)
+
+### v2.1.0 - Date Filter Implementation
+- ✅ Smart date period filter with data detection
+- ✅ Filter applies to all 5 tabs
+- ✅ Week filter with two-step selection
+- ✅ Responsive layout (tabs top, filter bottom)
+
 ## 🐛 Known Limitations
 
-1. **No Date Range Filter** - Shows all-time data
-2. **No Export Feature** - Cannot export to PDF/Excel
-3. **No Comparison** - No year-over-year comparison
-4. **Static Data** - No real-time updates (refresh required)
+1. **No Export Feature** - Cannot export to PDF/Excel
+2. **No Comparison** - No year-over-year comparison
+3. **Static Data** - No real-time updates (refresh required)
 
 ### Future Enhancements
 - Date range filters
@@ -269,6 +286,6 @@ Before using Stats:
 
 ---
 
-**Version**: 2.1.0  
-**Last Updated**: October 18, 2025  
+**Version**: 2.2.0  
+**Last Updated**: January 20, 2025  
 **Status**: ✅ Production Ready

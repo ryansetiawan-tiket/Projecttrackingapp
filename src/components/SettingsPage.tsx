@@ -430,22 +430,18 @@ export function SettingsPage({
           </TabsContent>
 
           <TabsContent value="types" className="mt-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
                   <Palette className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <CardTitle>Illustration Types</CardTitle>
-                    <CardDescription className="mt-1">
-                      Manage illustration types and their colors
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <TypeManager />
-              </CardContent>
-            </Card>
+                  Illustration Types
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage illustration types and their colors
+                </p>
+              </div>
+              <TypeManager />
+            </div>
           </TabsContent>
 
           <TabsContent value="links" className="mt-6">

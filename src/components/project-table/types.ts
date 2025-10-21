@@ -68,6 +68,9 @@ export interface ProjectTableRowProps {
   
   // 🆕 Column Order (v2.4.0) - Optional for backward compatibility
   columns?: TableColumn[];
+  
+  // 🔧 DEBUG: Current status group for conditional rendering
+  currentStatusGroup?: string;
 }
 
 /**

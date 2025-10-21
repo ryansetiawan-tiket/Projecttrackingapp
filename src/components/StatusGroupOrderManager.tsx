@@ -23,8 +23,6 @@ import {
   AlertDialogTitle 
 } from './ui/alert-dialog';
 import { toast } from 'sonner';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
 export function StatusGroupOrderManager() {
   const { statuses } = useStatuses();
@@ -87,8 +85,7 @@ export function StatusGroupOrderManager() {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h3 className="text-lg">Status Group Order</h3>
           <p className="text-sm text-muted-foreground">
@@ -211,6 +208,5 @@ export function StatusGroupOrderManager() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </DndProvider>
   );
 }

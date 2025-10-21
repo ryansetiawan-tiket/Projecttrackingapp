@@ -32,7 +32,8 @@ export function ProjectTableRow({
   state,
   onStateChange,
   isPublicView,
-  columns
+  columns,
+  currentStatusGroup
 }: ProjectTableRowProps) {
   const { typeColors } = useColors();
   const { linkLabels } = useLinkLabels();

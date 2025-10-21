@@ -1,285 +1,449 @@
 import { useMemo } from 'react';
 import { Project } from '../../types/project';
 import { Vertical } from '../../hooks/useVerticals';
-import { StatsCard } from './StatsCard';
-import { FolderOpen, Image, Users, CheckCircle, TrendingUp, Lightbulb, Activity } from 'lucide-react';
+import { Status } from '../../types/status';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { 
-  isProjectCompleted, 
-  getTotalAssetsForProject,
-  calculatePercentage,
-  isWithinLastNDays,
-  getTotalActionsForProject
-} from '../../utils/statsCalculations';
+import { Badge } from '../ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { StatsCard } from './StatsCard';
+import { HighlightCard } from './HighlightCard';
+import { calculateOverviewData, type OverviewData } from '../../utils/statsOverviewUtils';
 
 interface StatsOverviewProps {
   projects: Project[];
-  statuses: any[];
+  statuses: Status[];
   verticals: Vertical[];
+  collaborators?: any[];
 }
 
-export function StatsOverview({ projects, statuses, verticals }: StatsOverviewProps) {
-  const stats = useMemo(() => {
-    // Helper function to get vertical color
-    const getVerticalColor = (verticalName: string) => {
-      const vertical = verticals.find(v => v.name === verticalName);
-      return vertical?.color || 'hsl(0, 0%, 50%)';
-    };
-    
-    // Total Projects
-    const totalProjects = projects.length;
-    
-    // Total Assets
-    const totalAssets = projects.reduce((sum, project) => 
-      sum + getTotalAssetsForProject(project), 0
-    );
-    
-    // Total Collaborators (unique)
-    const collaboratorSet = new Set<string>();
-    projects.forEach(project => {
-      project.collaborators?.forEach(c => collaboratorSet.add(c.id));
-    });
-    const totalCollaborators = collaboratorSet.size;
-    
-    // Completion Rate
-    const completedProjects = projects.filter(p => isProjectCompleted(p)).length;
-    const completionRate = calculatePercentage(completedProjects, totalProjects);
-    
-    // Most Active Vertical
-    const verticalMap = new Map<string, number>();
-    projects.forEach(project => {
-      if (project.vertical) {
-        verticalMap.set(project.vertical, (verticalMap.get(project.vertical) || 0) + 1);
-      }
-    });
-    
-    let mostActiveVertical = null;
-    if (verticalMap.size > 0) {
-      const [name, count] = Array.from(verticalMap.entries())
-        .sort((a, b) => b[1] - a[1])[0];
-      mostActiveVertical = {
-        name,
-        count,
-        color: getVerticalColor(name)
-      };
-    }
-    
-    // Average Assets per Project
-    const averageAssetsPerProject = totalProjects > 0 
-      ? Math.round((totalAssets / totalProjects) * 10) / 10 
-      : 0;
-    
-    // Most Common Status
-    const statusMap = new Map<string, number>();
-    projects.forEach(project => {
-      if (project.status) {
-        statusMap.set(project.status, (statusMap.get(project.status) || 0) + 1);
-      }
-    });
-    
-    let mostCommonStatus = null;
-    if (statusMap.size > 0) {
-      const [name, count] = Array.from(statusMap.entries())
-        .sort((a, b) => b[1] - a[1])[0];
-      const statusObj = statuses.find(s => s.name === name);
-      mostCommonStatus = {
-        name,
-        count,
-        color: statusObj?.color || 'hsl(0, 0%, 50%)'
-      };
-    }
-    
-    // Recent Activity (Last 7 Days)
-    const projectsCreated = projects.filter(p => 
-      p.created_at && isWithinLastNDays(p.created_at, 7)
-    ).length;
-    
-    const assetsAdded = projects.reduce((sum, project) => {
-      let count = 0;
-      
-      // File assets (actionable items)
-      project.actionable_items?.forEach(asset => {
-        if (asset.created_at && isWithinLastNDays(asset.created_at, 7)) {
-          count++;
-        }
-      });
-      
-      // Lightroom assets
-      project.lightroomAssets?.forEach(asset => {
-        if (asset.created_at && isWithinLastNDays(asset.created_at, 7)) {
-          count++;
-        }
-      });
-      
-      // GDrive assets
-      project.gdriveAssets?.forEach(asset => {
-        if (asset.created_at && isWithinLastNDays(asset.created_at, 7)) {
-          count++;
-        }
-      });
-      
-      return sum + count;
-    }, 0);
-    
-    const actionsCompleted = projects.reduce((sum, project) => {
-      let count = 0;
-      
-      // Count completed actions from all asset types
-      const allAssets = [
-        ...(project.actionable_items || []),
-        ...(project.lightroomAssets || []),
-        ...(project.gdriveAssets || [])
-      ];
-      
-      allAssets.forEach(asset => {
-        asset.actions?.forEach(action => {
-          if (action.completed || action.status === 'done') {
-            count++;
-          }
-        });
-      });
-      
-      return sum + count;
-    }, 0);
-    
-    return {
-      totalProjects,
-      totalAssets,
-      totalCollaborators,
-      completionRate,
-      mostActiveVertical,
-      averageAssetsPerProject,
-      mostCommonStatus,
-      recentActivity: {
-        projectsCreated,
-        assetsAdded,
-        actionsCompleted
-      }
-    };
-  }, [projects, statuses, verticals]);
-  
+export function StatsOverview({ projects, statuses, verticals, collaborators = [] }: StatsOverviewProps) {
+  // Calculate all overview data
+  const overviewData = useMemo(() => 
+    calculateOverviewData(projects, verticals, statuses, collaborators),
+    [projects, verticals, statuses, collaborators]
+  );
+
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="Total Projects"
-          value={stats.totalProjects}
-          subtitle="All time"
-          icon={FolderOpen}
-        />
-        
-        <StatsCard
-          title="Total Assets"
-          value={stats.totalAssets.toLocaleString()}
-          subtitle={`Avg ${stats.averageAssetsPerProject} per project`}
-          icon={Image}
-        />
-        
-        <StatsCard
-          title="Collaborators"
-          value={stats.totalCollaborators}
-          subtitle="Unique team members"
-          icon={Users}
-        />
-        
-        <StatsCard
-          title="Completion Rate"
-          value={`${stats.completionRate}%`}
-          icon={CheckCircle}
-        >
-          <Progress value={stats.completionRate} className="h-2 mt-2" />
-        </StatsCard>
-      </div>
+      {/* Section 1: Performance Summary */}
+      <PerformanceSummary data={overviewData.performanceSummary} />
       
-      {/* Quick Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Lightbulb className="h-4 w-4" />
-            Quick Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {stats.mostActiveVertical && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Most Active Vertical:</span>
-              <div className="flex items-center gap-2">
-                <Badge 
-                  style={{ 
-                    backgroundColor: stats.mostActiveVertical.color,
-                    color: 'white'
-                  }}
-                >
-                  {stats.mostActiveVertical.name}
-                </Badge>
-                <span className="text-sm font-medium">
-                  ({stats.mostActiveVertical.count} projects)
+      {/* Section 2: Highlights */}
+      <Highlights data={overviewData.highlights} />
+      
+      {/* Section 3: Vertical Breakdown */}
+      {overviewData.verticalBreakdown.data.length > 0 && (
+        <VerticalBreakdown data={overviewData.verticalBreakdown} />
+      )}
+      
+      {/* Section 4: Efficiency Stats */}
+      <EfficiencyStats data={overviewData.efficiencyStats} />
+      
+      {/* Section 5: Weekly Pulse */}
+      <WeeklyPulse data={overviewData.weeklyPulse} />
+      
+      {/* Section 6: Team Snapshot */}
+      {overviewData.teamSnapshot.totalCollaborators > 0 && (
+        <TeamSnapshot data={overviewData.teamSnapshot} />
+      )}
+      
+      {/* Section 7: Fun Closing */}
+      <FunClosing message={overviewData.closingMessage} />
+    </div>
+  );
+}
+
+// ============================================================================
+// SECTION 1: PERFORMANCE SUMMARY
+// ============================================================================
+
+function PerformanceSummary({ data }: { data: OverviewData['performanceSummary'] }) {
+  return (
+    <Card className="bg-gradient-to-br from-[#1a1a1d] to-[#121212] border-[#3a3a3a]">
+      <CardHeader>
+        <CardTitle className="text-lg">🧭 Performance Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Hero Message */}
+        <div className="text-center">
+          <p className="text-xl md:text-2xl font-medium text-neutral-50">
+            You've managed{' '}
+            <span className="text-blue-400 font-bold">
+              {data.totalProjects} project{data.totalProjects !== 1 ? 's' : ''}
+            </span>{' '}
+            so far — wow, someone's been busy! 💼✨
+          </p>
+        </div>
+
+        {/* Progress Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Overall Progress</span>
+            <span className="text-3xl font-bold text-blue-400">
+              {data.completionRate}%
+            </span>
+          </div>
+          <Progress value={data.completionRate} className="h-3" />
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{data.completedProjects} completed</span>
+            <span>{data.inProgressProjects} in progress</span>
+          </div>
+        </div>
+
+        {/* Completion Message */}
+        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a]">
+          <p className="text-base text-neutral-200 text-center">
+            {data.completionMessage}
+          </p>
+        </div>
+
+        {/* Collaborators Preview */}
+        {data.topCollaborators.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              👥 Working with {data.totalCollaborators} amazing {data.totalCollaborators === 1 ? 'person' : 'people'}
+            </span>
+            <div className="flex -space-x-2">
+              {data.topCollaborators.map((collab) => (
+                <Avatar key={collab.id} className="h-8 w-8 border-2 border-background">
+                  {collab.avatar && <AvatarImage src={collab.avatar} />}
+                  <AvatarFallback className="text-xs">{collab.initials}</AvatarFallback>
+                </Avatar>
+              ))}
+              {data.totalCollaborators > 3 && (
+                <div className="h-8 w-8 rounded-full bg-[#2a2a2a] border-2 border-background flex items-center justify-center">
+                  <span className="text-xs">+{data.totalCollaborators - 3}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// SECTION 2: HIGHLIGHTS
+// ============================================================================
+
+function Highlights({ data }: { data: OverviewData['highlights'] }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Top Vertical */}
+      {data.topVertical && (
+        <HighlightCard emoji="🔥" title="Top Category">
+          <Badge 
+            style={{ backgroundColor: data.topVertical.color, color: '#fff' }}
+            className="mr-2"
+          >
+            {data.topVertical.name}
+          </Badge>
+          <span>
+            {data.topVertical.count} out of {data.topVertical.total} projects (
+            {data.topVertical.percentage}%) are pure {data.topVertical.name.toLowerCase()} grind{' '}
+            {data.topVertical.emoji}
+          </span>
+        </HighlightCard>
+      )}
+
+      {/* Fastest Project */}
+      {data.fastestProject && (
+        <HighlightCard emoji="⚡" title="Fastest Project">
+          <span className="font-semibold text-blue-400">
+            {data.fastestProject.name}
+          </span>{' '}
+          — finished in record time ({data.fastestProject.days} day{data.fastestProject.days !== 1 ? 's' : ''})!
+        </HighlightCard>
+      )}
+
+      {/* Most Active Collaborator */}
+      {data.mostActiveCollaborator && (
+        <HighlightCard emoji="👥" title="Most Active Collaborator">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Avatar className="h-8 w-8">
+              {data.mostActiveCollaborator.avatar && (
+                <AvatarImage src={data.mostActiveCollaborator.avatar} />
+              )}
+              <AvatarFallback className="text-xs">
+                {data.mostActiveCollaborator.initials}
+              </AvatarFallback>
+            </Avatar>
+            <p className="flex-1 min-w-0">
+              <span className="font-semibold">
+                {data.mostActiveCollaborator.name}
+              </span>{' '}
+              — found in {data.mostActiveCollaborator.simultaneousProjects} simultaneous project{data.mostActiveCollaborator.simultaneousProjects !== 1 ? 's' : ''} 😂
+            </p>
+          </div>
+        </HighlightCard>
+      )}
+
+      {/* Best Week */}
+      {data.bestWeek && (
+        <HighlightCard emoji="🎯" title="Best Week">
+          <span className="font-semibold">{data.bestWeek.dateRange}</span> —{' '}
+          {data.bestWeek.projects} project{data.bestWeek.projects !== 1 ? 's' : ''},{' '}
+          {data.bestWeek.assets} asset{data.bestWeek.assets !== 1 ? 's' : ''},{' '}
+          {data.bestWeek.actions} action{data.bestWeek.actions !== 1 ? 's' : ''}… are you okay? 😅
+        </HighlightCard>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// SECTION 3: VERTICAL BREAKDOWN
+// ============================================================================
+
+function VerticalBreakdown({ data }: { data: OverviewData['verticalBreakdown'] }) {
+  const chartData = data.data.map((v) => ({
+    name: v.name,
+    value: v.count,
+    color: v.color
+  }));
+
+  return (
+    <Card className="bg-[#121212] border-[#3a3a3a]">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <span>📊</span>
+          Category Breakdown
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Chart */}
+        <div className="flex justify-center">
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Breakdown List */}
+        <div className="space-y-4">
+          {data.data.map((vertical) => (
+            <div key={vertical.name} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                    style={{ backgroundColor: vertical.color }}
+                  />
+                  <span className="text-sm font-medium">{vertical.name}</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {vertical.count} project{vertical.count !== 1 ? 's' : ''} ({vertical.percentage}%)
                 </span>
               </div>
+              <Progress value={vertical.percentage} className="h-2" />
             </div>
-          )}
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Average Assets per Project:</span>
-            <span className="text-sm font-medium">{stats.averageAssetsPerProject}</span>
+          ))}
+        </div>
+
+        {/* Fun Caption */}
+        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a]">
+          <p className="text-sm text-center text-neutral-300 italic">
+            "{data.caption}"
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// SECTION 4: EFFICIENCY STATS
+// ============================================================================
+
+function EfficiencyStats({ data }: { data: OverviewData['efficiencyStats'] }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <StatsCard
+        icon="⏱️"
+        value={data.avgDuration.value}
+        unit="days avg"
+        label={data.avgDuration.label}
+        comment={data.avgDuration.comment}
+      />
+      <StatsCard
+        icon="📦"
+        value={data.avgAssets.value}
+        label={data.avgAssets.label}
+        comment={data.avgAssets.comment}
+        color="text-purple-400"
+      />
+      {data.longestProject && (
+        <Card className="bg-[#121212] border-[#3a3a3a] p-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🐌</span>
+              <span className="text-sm text-muted-foreground">Longest Project</span>
+            </div>
+            <div className="space-y-1">
+              <div className="text-blue-400 truncate" title={data.longestProject.name}>
+                {data.longestProject.name}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold">{data.longestProject.days}</span>
+                <span className="text-sm text-muted-foreground">days</span>
+              </div>
+              <p className="text-xs text-muted-foreground italic">
+                {data.longestProject.comment}
+              </p>
+            </div>
           </div>
-          
-          {stats.mostCommonStatus && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Most Common Status:</span>
-              <div className="flex items-center gap-2">
-                <Badge 
-                  style={{ 
-                    backgroundColor: stats.mostCommonStatus.color,
-                    color: 'white'
-                  }}
-                >
-                  {stats.mostCommonStatus.name}
-                </Badge>
-                <span className="text-sm font-medium">
-                  ({stats.mostCommonStatus.count} projects)
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// SECTION 5: WEEKLY PULSE
+// ============================================================================
+
+function WeeklyPulse({ data }: { data: OverviewData['weeklyPulse'] }) {
+  return (
+    <Card className="bg-[#121212] border-[#3a3a3a]">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <span>📅</span>
+          This Week's Pulse
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Main Message */}
+        <p className="text-base text-neutral-200 text-center">
+          This week you created{' '}
+          <span className="font-bold text-blue-400">{data.projectsCreated} project{data.projectsCreated !== 1 ? 's' : ''}</span>, added{' '}
+          <span className="font-bold text-green-400">{data.assetsAdded} asset{data.assetsAdded !== 1 ? 's' : ''}</span>, and completed{' '}
+          <span className="font-bold text-purple-400">{data.actionsCompleted} action{data.actionsCompleted !== 1 ? 's' : ''}</span>.
+        </p>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center space-y-1">
+            <div className="text-3xl font-bold text-blue-400">
+              {data.projectsCreated}
+            </div>
+            <div className="text-xs text-muted-foreground">Projects</div>
+          </div>
+          <div className="text-center space-y-1">
+            <div className="text-3xl font-bold text-green-400">
+              {data.assetsAdded}
+            </div>
+            <div className="text-xs text-muted-foreground">Assets</div>
+          </div>
+          <div className="text-center space-y-1">
+            <div className="text-3xl font-bold text-purple-400">
+              {data.actionsCompleted}
+            </div>
+            <div className="text-xs text-muted-foreground">Actions</div>
+          </div>
+        </div>
+
+        {/* Trend Message */}
+        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a] flex items-center gap-3">
+          {data.trend === 'up' && <TrendingUp className="h-5 w-5 text-green-400 flex-shrink-0" />}
+          {data.trend === 'down' && <TrendingDown className="h-5 w-5 text-orange-400 flex-shrink-0" />}
+          {data.trend === 'same' && <div className="h-5 w-5 flex-shrink-0" />}
+          <p className="text-sm text-neutral-300 flex-1">{data.trendMessage}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// SECTION 6: TEAM SNAPSHOT
+// ============================================================================
+
+function TeamSnapshot({ data }: { data: OverviewData['teamSnapshot'] }) {
+  return (
+    <Card className="bg-[#121212] border-[#3a3a3a]">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <span>👥</span>
+          Your Crew
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Total Count */}
+        <p className="text-base text-neutral-200 text-center">
+          You've worked with{' '}
+          <span className="font-bold text-blue-400">
+            {data.totalCollaborators} unique collaborator{data.totalCollaborators !== 1 ? 's' : ''}
+          </span>{' '}
+          so far.
+        </p>
+
+        {/* Avatar Grid */}
+        {data.topCollaborators.length > 0 && (
+          <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+            {data.topCollaborators.map((collab) => (
+              <div key={collab.id} className="flex flex-col items-center gap-2">
+                <Avatar className="h-12 w-12">
+                  {collab.avatar && <AvatarImage src={collab.avatar} />}
+                  <AvatarFallback>{collab.initials}</AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground truncate w-full text-center">
+                  {collab.name}
                 </span>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Recent Activity (Last 7 Days)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FolderOpen className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Projects Created</span>
-            </div>
-            <span className="text-sm font-medium">{stats.recentActivity.projectsCreated}</span>
+            ))}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Image className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Assets Added</span>
-            </div>
-            <span className="text-sm font-medium">{stats.recentActivity.assetsAdded}</span>
+        )}
+
+        {/* Top Squad Message */}
+        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#2a2a2a]">
+          <p className="text-sm text-neutral-300 text-center">
+            {data.topSquadMessage}
+          </p>
+        </div>
+
+        {/* New Joiners */}
+        {data.newCollaborators.length > 0 && (
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground flex-wrap">
+            <span>🎉 New joiners spotted:</span>
+            <span className="font-semibold text-green-400">
+              {data.newCollaborators.join(', ')} 👀
+            </span>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Actions Completed</span>
-            </div>
-            <span className="text-sm font-medium">{stats.recentActivity.actionsCompleted}</span>
-          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// SECTION 7: FUN CLOSING
+// ============================================================================
+
+function FunClosing({ message }: { message: string }) {
+  return (
+    <div className="flex justify-center">
+      <Card className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border-blue-500/20 max-w-2xl w-full">
+        <CardContent className="p-8 text-center space-y-4">
+          <div className="text-5xl">✨</div>
+          <p className="text-lg text-neutral-200 leading-relaxed">{message}</p>
         </CardContent>
       </Card>
     </div>

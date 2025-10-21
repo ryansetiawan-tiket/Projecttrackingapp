@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Save } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -911,15 +911,18 @@ function AppContent() {
 }
 
 export default function App() {
+  // Memoize backend to prevent recreation
+  const backend = useMemo(() => HTML5Backend, []);
+  
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={backend}>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
             <AppContent />
-          </DndProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </DndProvider>
   );
 }

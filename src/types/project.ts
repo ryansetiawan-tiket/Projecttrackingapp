@@ -148,6 +148,7 @@ export interface ProjectFormData {
   lightroom_assets?: LightroomAsset[];
   gdrive_assets?: GDriveAsset[];
   is_draft?: boolean; // Draft status - allows saving incomplete projects
+  completed_at?: string | null; // Timestamp when project was completed (status set to Done)
 }
 
 export interface FilterOptions {

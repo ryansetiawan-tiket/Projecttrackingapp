@@ -947,6 +947,7 @@ export function ProjectTable({
                             </DraggableTableHeader>
                           );
                         })}
+
                         {!isPublicView && <TableHead className="w-[50px] min-w-[50px] max-w-[50px]"></TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -1100,6 +1101,7 @@ export function ProjectTable({
                     if (newState.activeDatePopover !== undefined) setActiveDatePopover(newState.activeDatePopover);
                   }}
                   isPublicView={isPublicView}
+                  currentStatusGroup={groupByMode === 'status' ? status : undefined}
                 />
               )))];
                         });
@@ -1329,6 +1331,7 @@ export function ProjectTable({
                                         if (newState.activeDatePopover !== undefined) setActiveDatePopover(newState.activeDatePopover);
                                       }}
                                       isPublicView={isPublicView}
+                                      currentStatusGroup={groupByMode === 'vertical' ? undefined : status}
                                     />
                                   )))
                                 ];

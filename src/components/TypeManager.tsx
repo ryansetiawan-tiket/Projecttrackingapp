@@ -291,6 +291,15 @@ export function TypeManager({ onClose, onDataChange }: TypeManagerProps) {
           )}
         </div>
 
+              {/* Usage Note */}
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Note:</strong> You cannot delete types that are currently used in projects. 
+            Update or remove those projects first before deleting a type.
+          </AlertDescription>
+        </Alert>
+
         {/* Existing Types List */}
         <div>
           <h3 className="font-medium mb-3">Current Illustration Types ({types.length})</h3>
@@ -463,29 +472,9 @@ export function TypeManager({ onClose, onDataChange }: TypeManagerProps) {
           )}
         </div>
 
-        {/* Example Reference */}
-        <div className="border rounded-lg p-4 bg-gray-50 dark:bg-[#1A1A1D]">
-          <h3 className="font-medium mb-3">Reference: Illustration Types</h3>
-          <div className="flex justify-center">
-            <img 
-              src={exampleImage} 
-              alt="Illustration types reference"
-              className="max-w-full h-auto rounded border"
-            />
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
-            Use this as a reference for creating and managing your illustration types
-          </p>
-        </div>
 
-        {/* Usage Note */}
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Note:</strong> You cannot delete types that are currently used in projects. 
-            Update or remove those projects first before deleting a type.
-          </AlertDescription>
-        </Alert>
+
+
       </div>
   );
 }

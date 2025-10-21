@@ -60,7 +60,8 @@ export function ProjectPage({
     figma_working_file: '',
     actionable_items: [],
     lightroom_assets: [],
-    gdrive_assets: []
+    gdrive_assets: [],
+    completed_at: null
   });
 
   // Store initial data for comparison
@@ -79,7 +80,8 @@ export function ProjectPage({
     figma_working_file: '',
     actionable_items: [],
     lightroom_assets: [],
-    gdrive_assets: []
+    gdrive_assets: [],
+    completed_at: null
   });
 
   const isEditing = !!project;
@@ -120,7 +122,8 @@ export function ProjectPage({
         actionable_items: project.actionable_items || [],
         lightroom_assets: project.lightroom_assets || [],
         gdrive_assets: project.gdrive_assets || [],
-        is_draft: project.is_draft || false
+        is_draft: project.is_draft || false,
+        completed_at: project.completed_at || null // 🔧 FIX: Preserve completed_at timestamp
       };
       setFormData(initialData);
       setInitialFormData(initialData);
@@ -144,7 +147,8 @@ export function ProjectPage({
         actionable_items: [],
         lightroom_assets: [],
         gdrive_assets: [],
-        is_draft: false // Initialize as false for new projects
+        is_draft: false, // Initialize as false for new projects
+        completed_at: null // 🔧 FIX: Initialize completed_at for new projects
       };
       setFormData(emptyData);
       setInitialFormData(emptyData);

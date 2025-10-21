@@ -23,8 +23,6 @@ import {
   AlertDialogTitle 
 } from './ui/alert-dialog';
 import { toast } from 'sonner';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
 export function VerticalGroupOrderManager() {
   const { verticals } = useVerticals();
@@ -68,8 +66,7 @@ export function VerticalGroupOrderManager() {
   }
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="space-y-4">
+    <div className="space-y-4">
         <div>
           <h3 className="text-lg">Vertical Group Order</h3>
           <p className="text-sm text-muted-foreground">
@@ -131,6 +128,5 @@ export function VerticalGroupOrderManager() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </DndProvider>
   );
 }

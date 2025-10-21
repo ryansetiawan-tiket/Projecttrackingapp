@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { ArrowLeft, BarChart3, FolderOpen, Image, Users, Calendar } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, BarChart3, FolderOpen, Image, Users, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
+import { Card, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
 import { useProjects } from '../hooks/useProjects';
 import { useStatuses } from '../hooks/useStatuses';
 import { useTypes } from '../hooks/useTypes';
@@ -12,8 +14,10 @@ import { StatsProjects } from './stats/StatsProjects';
 import { StatsAssets } from './stats/StatsAssets';
 import { StatsCollaboration } from './stats/StatsCollaboration';
 import { StatsTimeline } from './stats/StatsTimeline';
+import { StatsDateFilter, DateRange } from './stats/StatsDateFilter';
 import { Skeleton } from './ui/skeleton';
 import { useIsMobile } from './ui/use-mobile';
+import { Project } from '../types/project';
 
 interface StatsPageProps {
   onBack: () => void;
@@ -21,11 +25,49 @@ interface StatsPageProps {
 
 export function StatsPage({ onBack }: StatsPageProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const isMobile = useIsMobile();
   const { projects, loading: projectsLoading } = useProjects();
   const { statuses } = useStatuses();
   const { types, typeColors } = useTypes();
   const { verticals } = useVerticals();
+
+  // Filter projects based on date range
+  const filteredProjects = useMemo(() => {
+    if (!dateRange) {
+      return projects; // All time - no filter
+    }
+
+    return projects.filter(project => {
+      // Use start_date as primary filter, fallback to completed_at
+      const projectDate = project.start_date 
+        ? new Date(project.start_date)
+        : project.completed_at 
+          ? new Date(project.completed_at)
+          : null;
+
+      if (!projectDate) {
+        return false; // Exclude projects without dates
+      }
+
+      return projectDate >= dateRange.start && projectDate <= dateRange.end;
+    });
+  }, [projects, dateRange]);
+
+  // Extract unique collaborators from all projects
+  const allCollaborators = useMemo(() => {
+    const collabMap = new Map();
+    projects.forEach(project => {
+      project.collaborators?.forEach(collab => {
+        // Handle both string IDs and collaborator objects
+        const collabObj = typeof collab === 'string' ? { id: collab, name: collab } : collab;
+        if (!collabMap.has(collabObj.id)) {
+          collabMap.set(collabObj.id, collabObj);
+        }
+      });
+    });
+    return Array.from(collabMap.values());
+  }, [projects]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -65,7 +107,7 @@ export function StatsPage({ onBack }: StatsPageProps) {
       <main className="container mx-auto px-4 py-6 max-w-7xl pb-safe">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tabs List */}
-          <TabsList className={isMobile ? "grid w-full grid-cols-5 mb-6" : "inline-flex mb-6"}>
+          <TabsList className={isMobile ? "grid w-full grid-cols-5 mb-4" : "inline-flex mb-4"}>
             <TabsTrigger value="overview" className="flex items-center gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Overview</span>
@@ -88,29 +130,78 @@ export function StatsPage({ onBack }: StatsPageProps) {
             </TabsTrigger>
           </TabsList>
 
+          {/* Date Filter - Below Tabs */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <StatsDateFilter 
+                projects={projects}
+                onDateRangeChange={setDateRange}
+              />
+              
+              {/* Active Filter Indicator */}
+              {dateRange ? (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex items-start gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-muted-foreground">Showing data for:</span>
+                        <Badge variant="secondary" className="font-medium">
+                          {dateRange.label}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="font-medium text-foreground">{filteredProjects.length}</span> of {projects.length} projects in this period
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm text-muted-foreground">Showing:</span>
+                      <Badge variant="outline">All Time</Badge>
+                      <span className="text-xs text-muted-foreground">({projects.length} total projects)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Tab Contents */}
           {projectsLoading ? (
             <LoadingSkeleton />
           ) : (
             <>
               <TabsContent value="overview" className="mt-0">
-                <StatsOverview projects={projects} statuses={statuses} verticals={verticals} />
+                <StatsOverview 
+                  projects={filteredProjects} 
+                  statuses={statuses} 
+                  verticals={verticals}
+                  collaborators={allCollaborators}
+                />
               </TabsContent>
               
               <TabsContent value="projects" className="mt-0">
-                <StatsProjects projects={projects} statuses={statuses} types={types} typeColors={typeColors} verticals={verticals} />
+                <StatsProjects projects={filteredProjects} statuses={statuses} types={types} typeColors={typeColors} verticals={verticals} />
               </TabsContent>
               
               <TabsContent value="assets" className="mt-0">
-                <StatsAssets projects={projects} statuses={statuses} />
+                <StatsAssets projects={filteredProjects} statuses={statuses} />
               </TabsContent>
               
               <TabsContent value="collaboration" className="mt-0">
-                <StatsCollaboration projects={projects} />
+                <StatsCollaboration projects={filteredProjects} />
               </TabsContent>
               
               <TabsContent value="timeline" className="mt-0">
-                <StatsTimeline projects={projects} />
+                <StatsTimeline projects={filteredProjects} />
               </TabsContent>
             </>
           )}

@@ -5,33 +5,87 @@ import { LucideIcon } from 'lucide-react';
 import { formatDaysToMonthsDays } from '../../utils/statsCalculations';
 
 interface StatsCardProps {
-  title: string;
+  title?: string;
   value: string | number;
   subtitle?: string;
-  icon?: LucideIcon;
+  icon?: LucideIcon | string; // Support both Lucide icons and emoji strings
   trend?: {
     value: string;
     type: 'positive' | 'negative' | 'neutral';
   };
   children?: ReactNode;
   className?: string;
-  isDuration?: boolean; // New prop to indicate duration formatting
+  isDuration?: boolean;
+  // New props for Overview redesign
+  label?: string;
+  unit?: string;
+  comment?: string;
+  color?: string;
 }
 
 export function StatsCard({
   title,
   value,
   subtitle,
-  icon: Icon,
+  icon,
   trend,
   children,
   className = '',
-  isDuration = false
+  isDuration = false,
+  label,
+  unit,
+  comment,
+  color = 'text-blue-400'
 }: StatsCardProps) {
   // Format value if it's a duration (number of days)
   const displayValue = isDuration && typeof value === 'number' 
     ? formatDaysToMonthsDays(value)
     : value;
+
+  // New compact style for Overview tab
+  if (label || comment) {
+    const IconComponent = typeof icon === 'function' ? icon : null;
+    const emojiIcon = typeof icon === 'string' ? icon : null;
+
+    return (
+      <Card className={`bg-[#121212] border-[#3a3a3a] ${className}`}>
+        <CardContent className="p-6 space-y-3 text-center">
+          {/* Icon */}
+          {emojiIcon && <div className="text-4xl">{emojiIcon}</div>}
+          {IconComponent && <IconComponent className="h-10 w-10 mx-auto text-muted-foreground" />}
+          
+          {/* Big Number */}
+          <div className={`text-3xl font-bold ${color}`}>{displayValue}</div>
+          
+          {/* Unit */}
+          {unit && (
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+              {unit}
+            </div>
+          )}
+          
+          {/* Label */}
+          {label && (
+            <div className="text-sm font-medium text-neutral-200">
+              {label}
+            </div>
+          )}
+          
+          {/* Fun Comment */}
+          {comment && (
+            <div className="text-xs text-muted-foreground italic">
+              "{comment}"
+            </div>
+          )}
+          
+          {children}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Original style for other tabs
+  const IconComponent = typeof icon === 'function' ? icon : null;
 
   return (
     <Card className={className}>
@@ -40,7 +94,7 @@ export function StatsCard({
           <CardTitle className="text-sm font-medium text-muted-foreground">
             {title}
           </CardTitle>
-          {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+          {IconComponent && <IconComponent className="h-4 w-4 text-muted-foreground" />}
         </div>
       </CardHeader>
       <CardContent>

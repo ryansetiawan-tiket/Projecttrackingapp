@@ -6,12 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { TrendingUp, Clock, Calendar } from 'lucide-react';
 import {
-  getQuarterFromDate,
   calculatePercentage,
   calculateDaysBetween,
   isProjectCompleted,
-  isValidDate,
-  getQuarterString
+  isValidDate
 } from '../../utils/statsCalculations';
 import { formatForPieChart, formatForBarChart, CHART_COLOR_ARRAY } from '../../utils/chartHelpers';
 
@@ -107,39 +105,6 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
       .sort((a, b) => b.count - a.count);
     
     // ============================================================================
-    // QUARTER DISTRIBUTION
-    // ============================================================================
-    const quarterMap = new Map<string, { quarter: string; year: number; quarterNumber: number; count: number; projects: string[] }>();
-    
-    projects.forEach(project => {
-      if (project.start_date && isValidDate(project.start_date)) {
-        const { quarter, year } = getQuarterFromDate(project.start_date);
-        const key = getQuarterString(quarter, year);
-        
-        if (!quarterMap.has(key)) {
-          quarterMap.set(key, {
-            quarter: key,
-            year,
-            quarterNumber: quarter,
-            count: 0,
-            projects: []
-          });
-        }
-        
-        const dist = quarterMap.get(key)!;
-        dist.count++;
-        dist.projects.push(project.project_name || project.id);
-      }
-    });
-    
-    const byQuarter = Array.from(quarterMap.values())
-      .sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        return b.quarterNumber - a.quarterNumber;
-      })
-      .slice(0, 8); // Last 8 quarters
-    
-    // ============================================================================
     // DURATION STATISTICS
     // ============================================================================
     const durations = projects
@@ -172,7 +137,6 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
       byStatus,
       byVertical,
       byType,
-      byQuarter,
       duration: {
         average: averageDuration,
         longest,
@@ -185,6 +149,23 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
   
   return (
     <div className="space-y-6">
+      {/* Active & Completed Projects */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatsCard
+          title="Active Projects"
+          value={stats.activeProjects}
+          icon={TrendingUp}
+          subtitle={`${calculatePercentage(stats.activeProjects, projects.length)}% of total`}
+        />
+        
+        <StatsCard
+          title="Completed Projects"
+          value={stats.completedProjects}
+          icon={Calendar}
+          subtitle={`${calculatePercentage(stats.completedProjects, projects.length)}% of total`}
+        />
+      </div>
+      
       {/* Vertical & Type Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Vertical Distribution */}
@@ -306,42 +287,6 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
         </Card>
       </div>
       
-      {/* Quarter Distribution */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Projects by Quarter (Last 8 Quarters)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats.byQuarter.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats.byQuarter} margin={{ bottom: 20 }}>
-                <XAxis 
-                  dataKey="quarter" 
-                  angle={stats.byQuarter.length > 6 ? -45 : 0}
-                  textAnchor={stats.byQuarter.length > 6 ? "end" : "middle"}
-                  height={stats.byQuarter.length > 6 ? 70 : 30}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis />
-                <Tooltip
-                  formatter={(value: number) => [`${value} projects`, '']}
-                  labelFormatter={(label) => label}
-                />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {stats.byQuarter.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLOR_ARRAY[index % CHART_COLOR_ARRAY.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-              No quarter data available
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
       {/* Duration Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard
@@ -369,20 +314,7 @@ export function StatsProjects({ projects, statuses, types, typeColors, verticals
         />
       </div>
       
-      {/* Active vs Completed */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsCard
-          title="Active Projects"
-          value={stats.activeProjects}
-          subtitle={`${calculatePercentage(stats.activeProjects, projects.length)}% of total`}
-        />
-        
-        <StatsCard
-          title="Completed Projects"
-          value={stats.completedProjects}
-          subtitle={`${calculatePercentage(stats.completedProjects, projects.length)}% of total`}
-        />
-      </div>
+
     </div>
   );
 }
