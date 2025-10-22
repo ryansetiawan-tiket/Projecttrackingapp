@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { MessageCircle, Mail, User } from 'lucide-react';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { getRandomContactTexts } from '../utils/contactDialogTexts';
+import { openSlackDirectMessage } from '../utils/slackUtils';
 
 interface ContactAdminDialogProps {
   open: boolean;
@@ -111,7 +112,7 @@ export function ContactAdminDialog({ open, onOpenChange }: ContactAdminDialogPro
               variant="outline"
               className="w-full justify-start gap-3 h-12"
               onClick={() => {
-                window.open(slackProfileUrl, '_blank', 'noopener,noreferrer');
+                openSlackDirectMessage(slackProfileUrl);
               }}
             >
               <MessageCircle className="h-5 w-5 text-primary" />

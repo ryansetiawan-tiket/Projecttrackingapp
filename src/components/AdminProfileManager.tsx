@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useAdminProfile, AdminProfile } from '../hooks/useAdminProfile';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner@2.0.3';
+import { openSlackDirectMessage } from '../utils/slackUtils';
 
 export function AdminProfileManager() {
   const { user, isAdmin } = useAuth();

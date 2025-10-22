@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { UserPlus, Search, Users } from 'lucide-react';
 import { Collaborator, ProjectCollaborator } from '../../types/project';
+import { openSlackDirectMessage } from '../../utils/slackUtils';
 
 interface CollaboratorAvatarsProps {
   projectId: string;
@@ -56,7 +57,7 @@ function CollaboratorItem({ collab, index, compactMode = false }: CollaboratorIt
             onClick={(e) => {
               e.stopPropagation();
               if (collab.profile_url) {
-                window.open(collab.profile_url, '_blank', 'noopener,noreferrer');
+                openSlackDirectMessage(collab.profile_url);
               }
             }}
             disabled={!collab.profile_url}
@@ -89,6 +90,9 @@ function CollaboratorItem({ collab, index, compactMode = false }: CollaboratorIt
             {collab.role && (
               <div className="text-xs text-muted-foreground">{collab.role}</div>
             )}
+            {collab.profile_url && (
+              <div className="text-xs text-muted-foreground mt-0.5">Click to chat on Slack</div>
+            )}
           </div>
         </TooltipContent>
       </Tooltip>
@@ -97,7 +101,7 @@ function CollaboratorItem({ collab, index, compactMode = false }: CollaboratorIt
           onClick={(e) => {
             e.stopPropagation();
             if (collab.profile_url) {
-              window.open(collab.profile_url, '_blank', 'noopener,noreferrer');
+              openSlackDirectMessage(collab.profile_url);
             }
           }}
           disabled={!collab.profile_url}
@@ -106,7 +110,7 @@ function CollaboratorItem({ collab, index, compactMode = false }: CollaboratorIt
               ? 'text-foreground hover:text-primary cursor-pointer transition-colors' 
               : 'text-foreground cursor-default'
           }`}
-          title={collab.profile_url ? `Open ${collab.name}'s profile` : collab.nickname || collab.name}
+          title={collab.profile_url ? `Chat with ${collab.name}` : collab.nickname || collab.name}
         >
           {collab.nickname || collab.name}
         </button>
@@ -162,7 +166,7 @@ function OverflowIndicator({ overflowCollaborators, overflowCount }: OverflowInd
                       onClick={(e) => {
                         e.stopPropagation();
                         if (collab.profile_url) {
-                          window.open(collab.profile_url, '_blank', 'noopener,noreferrer');
+                          openSlackDirectMessage(collab.profile_url);
                           setIsOverflowOpen(false);
                         }
                       }}
@@ -280,7 +284,7 @@ export function CollaboratorAvatars({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (collab.profile_url) {
-                      window.open(collab.profile_url, '_blank', 'noopener,noreferrer');
+                      openSlackDirectMessage(collab.profile_url);
                     }
                   }}
                   disabled={!collab.profile_url}
