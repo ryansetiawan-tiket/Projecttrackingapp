@@ -90,9 +90,6 @@ function CollaboratorItem({ collab, index, compactMode = false }: CollaboratorIt
             {collab.role && (
               <div className="text-xs text-muted-foreground">{collab.role}</div>
             )}
-            {collab.profile_url && (
-              <div className="text-xs text-muted-foreground mt-0.5">Click to chat on Slack</div>
-            )}
           </div>
         </TooltipContent>
       </Tooltip>
