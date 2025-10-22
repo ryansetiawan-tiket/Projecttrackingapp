@@ -619,6 +619,7 @@ function AppContent() {
         collaborators={collaborators}
         onBack={() => navigateToDashboard(backToView)}
         onEdit={navigateToEditProject}
+        onUpdateProject={updateProject}
         onNavigateToGDrive={navigateToGDrive}
         onNavigateToLightroom={navigateToLightroom}
         onViewImages={(projectId, assetId) => navigateToGDriveGallery(projectId, assetId, 'gdrive')}

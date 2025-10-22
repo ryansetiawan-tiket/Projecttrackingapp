@@ -1460,6 +1460,8 @@ initializeGDriveBucket();
 // Upload preview image for Google Drive asset
 app.post("/make-server-691c6bba/gdrive/upload-preview", async (c) => {
   try {
+    console.log('[Server] 📤 POST /gdrive/upload-preview - Starting upload...');
+    
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -1472,29 +1474,44 @@ app.post("/make-server-691c6bba/gdrive/upload-preview", async (c) => {
     const projectId = formData.get('projectId') as string;
     const assetId = formData.get('assetId') as string;
 
+    console.log('[Server] Received form data:', {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileType: file?.type,
+      fileSize: file?.size,
+      projectId,
+      assetId
+    });
+
     if (!file || !projectId || !assetId) {
+      console.error('[Server] ❌ Missing required fields');
       return c.json({ error: 'Missing required fields: file, projectId, assetId' }, 400);
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error('[Server] ❌ Invalid file type:', file.type);
       return c.json({ error: 'File must be an image' }, 400);
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
+      console.error('[Server] ❌ File too large:', file.size);
       return c.json({ error: 'File size must be less than 5MB' }, 400);
     }
 
     // Create file path: projectId/assetId-timestamp.ext
     const fileExt = file.name.split('.').pop() || 'jpg';
     const fileName = `${projectId}/${assetId}-${Date.now()}.${fileExt}`;
+    console.log('[Server] Generated file path:', fileName);
 
     // Convert File to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
+    console.log('[Server] File converted to Uint8Array, size:', uint8Array.length);
 
     // Upload to Supabase Storage
+    console.log('[Server] Uploading to Supabase Storage bucket: gdrive_previews');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('gdrive_previews')
       .upload(fileName, uint8Array, {
@@ -1503,28 +1520,36 @@ app.post("/make-server-691c6bba/gdrive/upload-preview", async (c) => {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      console.error('[Server] ❌ Upload error:', uploadError);
       return c.json({ error: `Failed to upload file: ${uploadError.message}` }, 500);
     }
 
+    console.log('[Server] ✅ File uploaded successfully:', uploadData);
+
     // Create signed URL (valid for 1 year)
+    console.log('[Server] Creating signed URL...');
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('gdrive_previews')
       .createSignedUrl(fileName, 31536000); // 1 year in seconds
 
     if (signedUrlError) {
-      console.error('Signed URL error:', signedUrlError);
+      console.error('[Server] ❌ Signed URL error:', signedUrlError);
       return c.json({ error: 'Failed to create signed URL' }, 500);
     }
 
-    return c.json({
+    console.log('[Server] ✅ Signed URL created successfully');
+
+    const response = {
       success: true,
       signedUrl: signedUrlData.signedUrl,
       path: fileName
-    });
+    };
+    
+    console.log('[Server] 📤 Sending response:', response);
+    return c.json(response);
 
   } catch (error) {
-    console.error('Error uploading preview:', error);
+    console.error('[Server] ❌ Error uploading preview:', error);
     return c.json({ error: 'Failed to upload preview image' }, 500);
   }
 });

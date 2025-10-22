@@ -3445,6 +3445,10 @@
     padding-bottom: calc(var(--spacing) * 20);
   }
 
+  .pb-24 {
+    padding-bottom: calc(var(--spacing) * 24);
+  }
+
   .pb-\[0px\] {
     padding-bottom: 0;
   }
@@ -6464,6 +6468,10 @@
     .dark\:bg-gray-800\/40:is(.dark *) {
       background-color: color-mix(in oklab, var(--color-gray-800) 40%, transparent);
     }
+  }
+
+  .dark\:bg-gray-900:is(.dark *) {
+    background-color: var(--color-gray-900);
   }
 
   .dark\:bg-green-900\/40:is(.dark *) {

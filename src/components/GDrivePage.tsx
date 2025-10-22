@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
-import { ArrowLeft, Copy, ExternalLink, Share2, Check, FolderIcon, FileIcon, Download, ChevronDown, Info, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, Eye, Search, ArrowUp } from 'lucide-react';
+import { ArrowLeft, Copy, ExternalLink, Share2, Check, FolderIcon, FileIcon, Download, ChevronDown, Info, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, Eye, Search, ArrowUp, Upload } from 'lucide-react';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { Project, GDriveAsset, Collaborator, ActionableItem } from '../types/project';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
@@ -12,6 +12,9 @@ import { toast } from 'sonner@2.0.3';
 import { ProjectDetailSidebar } from './ProjectDetailSidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { ContactAdminDialog } from './ContactAdminDialog';
+import { AddGDriveBulkDialog } from './AddGDriveBulkDialog';
+import { useAuth } from '../contexts/AuthContext';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 import {
   Select,
   SelectContent,
@@ -43,13 +46,17 @@ interface GDrivePageProps {
   collaborators: Collaborator[];
   onBack: () => void;
   onEdit: (project: Project) => void;
+  onUpdateProject?: (id: string, projectData: Partial<Project>) => void; // Direct save without opening dialog
   onNavigateToGDrive: (projectId: string) => void;
   onNavigateToLightroom?: (projectId: string) => void;
   onViewImages?: (projectId: string, assetId: string) => void;
   isPublicView?: boolean; // For stakeholder access
 }
 
-export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateToGDrive, onNavigateToLightroom, onViewImages, isPublicView = false }: GDrivePageProps) {
+export function GDrivePage({ project, collaborators, onBack, onEdit, onUpdateProject, onNavigateToGDrive, onNavigateToLightroom, onViewImages, isPublicView = false }: GDrivePageProps) {
+  // 🔐 Get auth context for permission checks
+  const { isAdmin } = useAuth();
+  
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showContactDialog, setShowContactDialog] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -74,6 +81,9 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateT
   
   // 🆕 Folder quick actions state
   const [copiedFolderIds, setCopiedFolderIds] = useState<Set<string>>(new Set());
+  
+  // 🆕 Bulk upload dialog state
+  const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
 
   const gdriveAssets = project.gdrive_assets || [];
   const assets = project.actionable_items || [];
@@ -317,6 +327,154 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateT
       toast.error('No GDrive link available');
     }
   }, []);
+
+  // 🆕 Bulk upload handler
+  const handleBulkUploadSave = useCallback(async (newAssets: any[], onProgress?: (current: number, total: number) => void) => {
+    try {
+      console.log('[GDrivePage] Starting bulk upload save...', { assetCount: newAssets.length });
+      
+      // Count total files to upload
+      const totalFilesToUpload = newAssets.filter(a => a._file && a._file instanceof File).length;
+      let uploadedFilesCount = 0;
+      
+      // Initialize progress
+      if (onProgress && totalFilesToUpload > 0) {
+        onProgress(0, totalFilesToUpload);
+      }
+      
+      // Map temp IDs to real IDs for nested hierarchy
+      const tempIdToRealId = new Map<string, string>();
+      
+      // First pass: generate real IDs, upload files, and map temp IDs
+      const assetsWithIds: GDriveAsset[] = [];
+      
+      for (const asset of newAssets) {
+        console.log('[GDrivePage] Processing asset:', { 
+          name: asset.asset_name, 
+          type: asset.asset_type,
+          hasFile: !!asset._file,
+          fileType: asset._file?.type,
+          fileSize: asset._file?.size
+        });
+        
+        const realId = `gdrive_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        if (asset._tempId) {
+          tempIdToRealId.set(asset._tempId, realId);
+        }
+        
+        // Upload preview file if exists
+        let uploadedPreviewUrl: string | null = null;
+        if (asset._file && asset._file instanceof File) {
+          try {
+            console.log('[GDrivePage] Uploading file to Supabase Storage...', { 
+              assetId: realId,
+              fileName: asset._file.name 
+            });
+            
+            // Upload file to Supabase Storage
+            const formData = new FormData();
+            formData.append('file', asset._file);
+            formData.append('projectId', project.id);
+            formData.append('assetId', realId);
+
+            const response = await fetch(
+              `https://${projectId}.supabase.co/functions/v1/make-server-691c6bba/gdrive/upload-preview`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${publicAnonKey}`
+                },
+                body: formData
+              }
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              uploadedPreviewUrl = data.signedUrl;
+              console.log('[GDrivePage] ✅ File uploaded successfully!', { 
+                assetId: realId,
+                signedUrl: uploadedPreviewUrl 
+              });
+              
+              // Update progress
+              uploadedFilesCount++;
+              if (onProgress) {
+                onProgress(uploadedFilesCount, totalFilesToUpload);
+              }
+            } else {
+              const errorText = await response.text();
+              console.error('[GDrivePage] ❌ Failed to upload preview:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText
+              });
+              toast.error(`Failed to upload preview for ${asset.asset_name}`);
+            }
+          } catch (error) {
+            console.error('[GDrivePage] ❌ Error uploading preview file:', error);
+            toast.error(`Error uploading preview for ${asset.asset_name}`);
+          }
+          
+          // Cleanup blob URL after upload (if it was a blob URL)
+          if (asset.preview_url && asset.preview_url.startsWith('blob:')) {
+            URL.revokeObjectURL(asset.preview_url);
+          }
+        }
+        
+        const processedAsset = {
+          ...asset,
+          id: realId,
+          parent_id: asset._parentTempId ? null : (currentFolderId || undefined), // Will be filled in second pass
+          preview_url: uploadedPreviewUrl || (asset.preview_url && !asset.preview_url.startsWith('blob:') ? asset.preview_url : null),
+          _tempId: undefined,
+          _parentTempId: undefined,
+          _file: undefined // Remove file object from final data
+        };
+        
+        console.log('[GDrivePage] Processed asset:', {
+          id: processedAsset.id,
+          name: processedAsset.asset_name,
+          preview_url: processedAsset.preview_url
+        });
+        
+        assetsWithIds.push(processedAsset);
+      }
+      
+      // Second pass: resolve parent_id references
+      assetsWithIds.forEach((asset, index) => {
+        const originalAsset = newAssets[index];
+        if (originalAsset._parentTempId) {
+          // This asset has a parent from the upload - resolve the parent's real ID
+          asset.parent_id = tempIdToRealId.get(originalAsset._parentTempId) || undefined;
+        } else {
+          // Root level item - use current folder as parent
+          asset.parent_id = currentFolderId || undefined;
+        }
+      });
+      
+      // Add to project and save directly (without opening edit dialog)
+      const updatedGDriveAssets = [...gdriveAssets, ...assetsWithIds];
+      
+      console.log('[GDrivePage] Saving to database...', {
+        totalAssets: updatedGDriveAssets.length,
+        newAssets: assetsWithIds.length
+      });
+      
+      if (onUpdateProject) {
+        // Direct save without opening dialog - pass (id, data) format
+        await onUpdateProject(project.id, { gdrive_assets: updatedGDriveAssets });
+        console.log('[GDrivePage] ✅ Successfully saved to database!');
+        toast.success(`Added ${assetsWithIds.length} item${assetsWithIds.length === 1 ? '' : 's'}`);
+      } else {
+        // Fallback to onEdit if onUpdateProject not provided
+        onEdit({ ...project, gdrive_assets: updatedGDriveAssets });
+        console.log('[GDrivePage] ✅ Successfully updated via onEdit!');
+      }
+    } catch (error) {
+      console.error('[GDrivePage] ❌ Error in bulk upload save:', error);
+      toast.error('Failed to save assets. Please try again.');
+    }
+  }, [gdriveAssets, project, onEdit, onUpdateProject, currentFolderId]);
 
   const selectedGDriveAsset = selectedAssetIndex !== null ? filteredGDriveAssets[selectedAssetIndex] : null;
 
@@ -769,12 +927,8 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateT
               : 'hover:shadow-md'
           }`}
           onClick={() => {
-            // Smart folder click behavior
-            if (hasChildren) {
-              handleFolderClick(asset.id);
-            } else {
-              window.open(asset.gdrive_link, '_blank', 'noopener,noreferrer');
-            }
+            // Navigate into folder
+            handleFolderClick(asset.id);
           }}
         >
           <CardContent className="p-3">
@@ -796,11 +950,7 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateT
               
               {/* Action Icon */}
               <div className="flex-shrink-0">
-                {hasChildren ? (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
             
@@ -1443,17 +1593,32 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateT
                     </p>
                   </div>
                 </div>
-                {getCurrentFolder()?.gdrive_link && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(getCurrentFolder()!.gdrive_link, '_blank', 'noopener,noreferrer')}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Open in GDrive
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {/* Add New Button - Drag & Drop Upload (Admin Only) */}
+                  {!isPublicView && isAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                      onClick={() => setBulkUploadDialogOpen(true)}
+                    >
+                      <Upload className="h-4 w-4" />
+                      Add New
+                    </Button>
+                  )}
+                  
+                  {getCurrentFolder()?.gdrive_link && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(getCurrentFolder()!.gdrive_link, '_blank', 'noopener,noreferrer')}
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open in GDrive
+                    </Button>
+                  )}
+                </div>
               </div>
               
               {/* 🆕 Breadcrumbs Navigation */}
@@ -2005,6 +2170,16 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onNavigateT
           </div>
         </div>
       )}
+
+      {/* Bulk Upload Dialog */}
+      <AddGDriveBulkDialog
+        open={bulkUploadDialogOpen}
+        onOpenChange={setBulkUploadDialogOpen}
+        actionableItems={assets}
+        currentFolderId={currentFolderId}
+        currentFolderName={getCurrentFolder()?.asset_name || 'Google Drive'}
+        onSave={handleBulkUploadSave}
+      />
     </div>
   );
 }

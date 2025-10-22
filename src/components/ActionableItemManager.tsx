@@ -1105,107 +1105,105 @@ export function ActionableItemManager({
                     className="mt-1 shrink-0"
                   />
                   
-                  <AccordionTrigger 
-                    className="hover:no-underline py-0 pb-3 flex-1"
-                    onKeyDown={(e) => {
-                      // ✅ FIX: Prevent spacebar from toggling accordion
-                      if (e.key === ' ') {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-3 w-full pr-2">
-                      <div className="flex-1 min-w-0 space-y-2">
-                        {/* ✅ FIX: Display title as text only, editing happens in AccordionContent */}
-                        <h4 className={`text-sm truncate text-left ${item.is_completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {item.title}
-                        </h4>
-                        
-                        {/* Mini badges and progress in header */}
-                        {!isEditing && (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {/* Action Progress Mini (x/y) */}
-                            {hasActions && (() => {
-                              const assetProgress = calculateAssetProgress(item.actions || []);
-                              const completedActions = (item.actions || []).filter(a => a.completed).length;
-                              const totalActions = (item.actions || []).length;
-                              return (
+                  <div className="flex-1 flex items-start gap-3">
+                    <AccordionTrigger 
+                      className="hover:no-underline py-0 pb-3 flex-1"
+                      onKeyDown={(e) => {
+                        // ✅ FIX: Prevent spacebar from toggling accordion
+                        if (e.key === ' ') {
+                          e.preventDefault();
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3 w-full pr-2">
+                        <div className="flex-1 min-w-0 space-y-2">
+                          {/* ✅ FIX: Display title as text only, editing happens in AccordionContent */}
+                          <h4 className={`text-sm truncate text-left ${item.is_completed ? 'line-through text-muted-foreground' : ''}`}>
+                            {item.title}
+                          </h4>
+                          
+                          {/* Mini badges and progress in header */}
+                          {!isEditing && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {/* Action Progress Mini (x/y) */}
+                              {hasActions && (() => {
+                                const assetProgress = calculateAssetProgress(item.actions || []);
+                                const completedActions = (item.actions || []).filter(a => a.completed).length;
+                                const totalActions = (item.actions || []).length;
+                                return (
+                                  <Badge 
+                                    variant="secondary"
+                                    className="text-xs h-5 px-1.5 bg-primary/5 text-primary border-primary/20"
+                                  >
+                                    {completedActions}/{totalActions}
+                                  </Badge>
+                                );
+                              })()}
+                              
+                              {/* Illustration Type Badge */}
+                              {item.illustration_type && (
                                 <Badge 
-                                  variant="secondary"
-                                  className="text-xs h-5 px-1.5 bg-primary/5 text-primary border-primary/20"
+                                  variant="outline"
+                                  className="text-[10px] h-4 px-1.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800"
                                 >
-                                  {completedActions}/{totalActions}
+                                  {item.illustration_type}
                                 </Badge>
-                              );
-                            })()}
-                            
-                            {/* Illustration Type Badge */}
-                            {item.illustration_type && (
+                              )}
+                              
+                              {/* Status Badge */}
                               <Badge 
-                                variant="outline"
-                                className="text-[10px] h-4 px-1.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800"
+                                variant="outline" 
+                                className="text-xs h-5 px-1.5"
+                                style={{
+                                  backgroundColor: getStatusColorFromContext(item.status || 'Not Started'),
+                                  color: getStatusTextColor(item.status || 'Not Started'),
+                                  borderColor: getStatusColorFromContext(item.status || 'Not Started')
+                                }}
                               >
-                                {item.illustration_type}
+                                {item.status || 'Not Started'}
                               </Badge>
-                            )}
-                            
-                            {/* Status Badge */}
-                            <Badge 
-                              variant="outline" 
-                              className="text-xs h-5 px-1.5"
-                              style={{
-                                backgroundColor: getStatusColorFromContext(item.status || 'Not Started'),
-                                color: getStatusTextColor(item.status || 'Not Started'),
-                                borderColor: getStatusColorFromContext(item.status || 'Not Started')
-                              }}
-                            >
-                              {item.status || 'Not Started'}
-                            </Badge>
-                          </div>
-                        )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isEditing) {
-                              handleCancelEdit();
-                            } else {
-                              handleStartEdit(item);
-                            }
-                          }}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDuplicateActionableItem(item.id);
-                          }}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-blue-600"
-                          title="Duplicate asset"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteActionableItem(item.id);
-                          }}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                    </AccordionTrigger>
+                    
+                    {/* Action buttons outside AccordionTrigger to avoid nesting buttons */}
+                    <div className="flex items-center gap-1 shrink-0 pb-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isEditing) {
+                            handleCancelEdit();
+                          } else {
+                            handleStartEdit(item);
+                          }
+                        }}
+                        className="h-6 w-6 p-0 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded hover:bg-accent"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateActionableItem(item.id);
+                        }}
+                        className="h-6 w-6 p-0 flex items-center justify-center text-muted-foreground hover:text-blue-600 transition-colors rounded hover:bg-accent"
+                        title="Duplicate asset"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteActionableItem(item.id);
+                        }}
+                        className="h-6 w-6 p-0 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-accent"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
-                  </AccordionTrigger>
+                  </div>
                 </div>
               </div>
               
