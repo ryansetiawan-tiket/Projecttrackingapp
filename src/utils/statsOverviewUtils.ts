@@ -52,6 +52,16 @@ export interface LongestProject {
   message: string;
 }
 
+export interface BusiestMonth {
+  month: string;
+  year: number;
+  totalActivities: number;
+  projects: number;
+  assets: number;
+  actions: number;
+  comment: string;
+}
+
 export interface MostActiveCollaborator {
   id: string;
   name: string;
@@ -85,24 +95,18 @@ export interface EfficiencyStats {
     label: string;
     comment: string;
   };
-  onTimeRate: {
-    value: number;
-    label: string;
-    comment: string;
-  };
-  avgDelay: {
-    value: number;
-    label: string;
-    comment: string;
-  };
   avgAssets: {
     value: number;
     label: string;
     comment: string;
   };
-  longestProject: {
-    name: string;
-    days: number;
+  busiestMonth: {
+    month: string;
+    year: number;
+    totalActivities: number;
+    projects: number;
+    assets: number;
+    actions: number;
     comment: string;
   } | null;
 }
@@ -131,6 +135,7 @@ export interface OverviewData {
     topVertical: TopVertical | null;
     fastestProject: FastestProject | null;
     longestProject: LongestProject | null;
+    busiestMonth: BusiestMonth | null;
     mostActiveCollaborator: MostActiveCollaborator | null;
     bestWeek: BestPeriod | null;
   };
@@ -409,6 +414,96 @@ function getLongestProjectMessage(name: string, days: number): string {
 }
 
 // ============================================================================
+// BUSIEST MONTH
+// ============================================================================
+
+function getBusiestMonth(projects: Project[]): BusiestMonth | null {
+  if (projects.length === 0) return null;
+  
+  const monthlyStats = new Map<string, { projects: number; assets: number; actions: number }>();
+  
+  projects.forEach(project => {
+    const date = new Date(project.created_at);
+    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+    const current = monthlyStats.get(monthKey) || { projects: 0, assets: 0, actions: 0 };
+    
+    current.projects++;
+    current.assets += getTotalAssetsForProject(project);
+    current.actions += getTotalActionsForProject(project);
+    
+    monthlyStats.set(monthKey, current);
+  });
+  
+  if (monthlyStats.size === 0) return null;
+  
+  let busiestMonth = '';
+  let maxActivities = 0;
+  
+  monthlyStats.forEach((stats, monthKey) => {
+    const totalActivities = stats.projects + stats.assets + stats.actions;
+    if (totalActivities > maxActivities) {
+      maxActivities = totalActivities;
+      busiestMonth = monthKey;
+    }
+  });
+  
+  const stats = monthlyStats.get(busiestMonth)!;
+  const [year, monthIndex] = busiestMonth.split('-').map(Number);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const month = monthNames[monthIndex];
+  
+  const totalActivities = stats.projects + stats.assets + stats.actions;
+  
+  return {
+    month,
+    year,
+    totalActivities,
+    projects: stats.projects,
+    assets: stats.assets,
+    actions: stats.actions,
+    comment: getBusiestMonthMessage(month, stats.projects, totalActivities)
+  };
+}
+
+function getBusiestMonthMessage(month: string, projects: number, activities: number): string {
+  // Very high activity (200+)
+  if (activities >= 200) {
+    if (projects >= 20) return `absolute chaos! 🤯 someone get this person a medal`;
+    if (projects >= 15) return `productivity beast mode unlocked 🦁 take a break maybe?`;
+    if (projects >= 10) return `this is insane! 🔥 are you a productivity robot?`;
+    return `absolute chaos! 🤯 but make it organized`;
+  }
+  
+  // High activity (100-199)
+  if (activities >= 100) {
+    if (projects >= 15) return `juggling ${projects} projects like a pro 🤹 respect!`;
+    if (projects >= 10) return `${projects} projects?! someone's on fire 🔥`;
+    if (projects >= 8) return `beast mode activated 🦁 caffeine levels: maximum`;
+    return `super productive! 🚀 your future self says thanks`;
+  }
+  
+  // Medium-high activity (50-99)
+  if (activities >= 50) {
+    if (projects >= 10) return `${projects} projects, ${activities} things done - legendary! ⭐`;
+    if (projects >= 7) return `crushing it with ${projects} projects! 💪 goals`;
+    if (projects >= 5) return `solid hustle! 🏃 ${month} was kind to you`;
+    return `productivity on point! 🎯 keep it up`;
+  }
+  
+  // Medium activity (20-49)
+  if (activities >= 20) {
+    if (projects >= 5) return `${projects} projects handled smoothly 👌 nice balance`;
+    if (projects >= 3) return `steady grind! 🔨 consistency wins`;
+    return `keeping busy! 📊 quality over quantity`;
+  }
+  
+  // Low activity (<20)
+  if (projects >= 3) return `${projects} projects in focus mode 🎯 depth over breadth`;
+  if (projects >= 2) return `quality work > quantity 💎 intentional productivity`;
+  return `chill vibes only ☕ sometimes less is more`;
+}
+
+// ============================================================================
 // MOST ACTIVE COLLABORATOR
 // ============================================================================
 
@@ -603,64 +698,15 @@ function getEfficiencyStats(projects: Project[]): EfficiencyStats {
     ? durations.reduce((a, b) => a + b, 0) / durations.length 
     : 0;
   
-  // On-time Rate - ONLY count projects with due_date, use fallback for completed_at
-  const projectsWithDeadline = completedProjects.filter(p => p.due_date);
-  const onTimeCount = projectsWithDeadline.filter(p => {
-    const effectiveCompletedAt = p.completed_at || p.updated_at;
-    if (!effectiveCompletedAt || !p.due_date) return false;
-    return new Date(effectiveCompletedAt) <= new Date(p.due_date);
-  }).length;
-  
-  const onTimeRate = projectsWithDeadline.length > 0
-    ? (onTimeCount / projectsWithDeadline.length) * 100
-    : 0;
-  
-  // Debug logging
-  console.log('📊 On-Time Rate Calculation:', {
-    totalCompleted: completedProjects.length,
-    withDeadline: projectsWithDeadline.length,
-    onTimeCount,
-    onTimeRate: Math.round(onTimeRate),
-    projectsWithDeadlineDetails: projectsWithDeadline.map(p => {
-      const effectiveCompletedAt = p.completed_at || p.updated_at;
-      return {
-        name: p.project_name,
-        completed_at: p.completed_at,
-        effectiveCompletedAt,
-        due_date: p.due_date,
-        usedFallback: !p.completed_at,
-        isOnTime: effectiveCompletedAt ? new Date(effectiveCompletedAt) <= new Date(p.due_date) : false,
-        completedDate: effectiveCompletedAt ? new Date(effectiveCompletedAt) : null,
-        dueDate: new Date(p.due_date)
-      };
-    })
-  });
-  
-  // Average Delay - ONLY from projects with deadline that are late
-  const lateProjects = projectsWithDeadline.filter(p => {
-    const effectiveCompletedAt = p.completed_at || p.updated_at;
-    if (!effectiveCompletedAt || !p.due_date) return false;
-    return new Date(effectiveCompletedAt) > new Date(p.due_date);
-  });
-  
-  const delays = lateProjects.map(p => {
-    const effectiveCompletedAt = p.completed_at || p.updated_at;
-    if (!effectiveCompletedAt || !p.due_date) return 0;
-    const days = Math.ceil((new Date(effectiveCompletedAt).getTime() - new Date(p.due_date).getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, days);
-  });
-  
-  const avgDelay = delays.length > 0
-    ? delays.reduce((a, b) => a + b, 0) / delays.length
-    : 0;
-  
   // Average Assets
   const avgAssets = projects.length > 0
     ? projects.reduce((sum, p) => sum + getTotalAssetsForProject(p), 0) / projects.length
     : 0;
   
-  // Longest Project
-  const longestProject = getLongestProject(projects);
+  // Busiest Month
+  const busiestMonth = getBusiestMonth(projects);
+  
+  console.log('🔍 BUSIEST MONTH DEBUG:', busiestMonth);
   
   return {
     avgDuration: {
@@ -668,25 +714,19 @@ function getEfficiencyStats(projects: Project[]): EfficiencyStats {
       label: 'Project Duration',
       comment: getDurationComment(avgDuration)
     },
-    onTimeRate: {
-      value: Math.round(onTimeRate),
-      label: 'On-Time Delivery',
-      comment: getOnTimeComment(onTimeRate)
-    },
-    avgDelay: {
-      value: parseFloat(avgDelay.toFixed(1)),
-      label: 'Average Delay',
-      comment: getDelayComment(avgDelay)
-    },
     avgAssets: {
       value: parseFloat(avgAssets.toFixed(1)),
       label: 'Assets per Project',
       comment: getAssetsComment(avgAssets)
     },
-    longestProject: longestProject ? {
-      name: longestProject.name,
-      days: longestProject.days,
-      comment: longestProject.message
+    busiestMonth: busiestMonth ? {
+      month: busiestMonth.month,
+      year: busiestMonth.year,
+      totalActivities: busiestMonth.totalActivities,
+      projects: busiestMonth.projects,
+      assets: busiestMonth.assets,
+      actions: busiestMonth.actions,
+      comment: busiestMonth.comment
     } : null
   };
 }
@@ -697,22 +737,6 @@ function getDurationComment(days: number): string {
   if (days <= 14) return 'about right for quality work 👌';
   if (days <= 30) return 'slow and steady wins the race 🐢';
   return 'taking the scenic route - Rome wasn\'t built in a day! 🏛️';
-}
-
-function getOnTimeComment(rate: number): string {
-  if (rate >= 90) return 'basically a time machine! ⏰✨';
-  if (rate >= 80) return 'faster than most deliveries 🚚💨';
-  if (rate >= 70) return 'pretty reliable! 📦';
-  if (rate >= 60) return 'room for improvement, but who\'s perfect? 🤷';
-  return 'slow and steady - deadlines are just suggestions, right? 😅';
-}
-
-function getDelayComment(days: number): string {
-  if (days <= 0.5) return 'barely noticeable! 🎯';
-  if (days <= 1) return 'just fashionably late ⏰';
-  if (days <= 2) return 'could be worse! ☕';
-  if (days <= 5) return 'the projects needed more time to be perfect 💎';
-  return 'good things take time! 🌟';
 }
 
 function getAssetsComment(count: number): string {
@@ -882,6 +906,7 @@ export function calculateOverviewData(
       topVertical: getTopVertical(projects, verticals),
       fastestProject: getFastestProject(projects),
       longestProject: getLongestProject(projects),
+      busiestMonth: getBusiestMonth(projects),
       mostActiveCollaborator: getMostActiveCollaborator(projects, collaborators),
       bestWeek: getBestWeek(projects)
     },

@@ -71,14 +71,15 @@ export function StatsCard({
             </div>
           )}
           
-          {/* Fun Comment */}
+          {/* Children (breakdown) before comment */}
+          {children}
+          
+          {/* Fun Comment - moved to bottom */}
           {comment && (
             <div className="text-xs text-muted-foreground italic">
               "{comment}"
             </div>
           )}
-          
-          {children}
         </CardContent>
       </Card>
     );

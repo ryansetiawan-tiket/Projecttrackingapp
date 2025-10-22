@@ -300,27 +300,19 @@ function EfficiencyStats({ data }: { data: OverviewData['efficiencyStats'] }) {
         comment={data.avgAssets.comment}
         color="text-purple-400"
       />
-      {data.longestProject && (
-        <Card className="p-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🐌</span>
-              <span className="text-sm text-muted-foreground">Longest Project</span>
-            </div>
-            <div className="space-y-1">
-              <div className="text-blue-600 dark:text-blue-400 truncate" title={data.longestProject.name}>
-                {data.longestProject.name}
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold">{data.longestProject.days}</span>
-                <span className="text-sm text-muted-foreground">days</span>
-              </div>
-              <p className="text-xs text-muted-foreground italic">
-                {data.longestProject.comment}
-              </p>
-            </div>
+      {data.busiestMonth && (
+        <StatsCard
+          icon="📅"
+          value={data.busiestMonth.projects}
+          unit="projects"
+          label={`${data.busiestMonth.month} ${data.busiestMonth.year}`}
+          comment={data.busiestMonth.comment}
+          color="text-orange-400"
+        >
+          <div className="text-xs text-muted-foreground">
+            with {data.busiestMonth.assets} assets, {data.busiestMonth.actions} actions
           </div>
-        </Card>
+        </StatsCard>
       )}
     </div>
   );

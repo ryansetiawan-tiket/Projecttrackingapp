@@ -1964,10 +1964,6 @@
     flex-wrap: wrap;
   }
 
-  .items-baseline {
-    align-items: baseline;
-  }
-
   .items-center {
     align-items: center;
   }
@@ -3807,6 +3803,10 @@
     .text-muted-foreground\/70 {
       color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
     }
+  }
+
+  .text-orange-400 {
+    color: var(--color-orange-400);
   }
 
   .text-orange-600 {
