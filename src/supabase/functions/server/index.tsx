@@ -1605,6 +1605,74 @@ app.post("/make-server-691c6bba/gdrive/delete-preview", async (c) => {
   }
 });
 
+// Delete folder and all its descendants from Google Drive assets
+app.post("/make-server-691c6bba/gdrive/delete-folder", async (c) => {
+  try {
+    console.log('[Server] 🗑️ POST /gdrive/delete-folder - Starting delete...');
+    
+    const { projectId, folderId } = await c.req.json();
+    
+    if (!projectId || !folderId) {
+      return c.json({ error: 'Missing required fields: projectId, folderId' }, 400);
+    }
+    
+    console.log('[Server] Delete folder request:', { projectId, folderId });
+    
+    // Get project from KV store
+    const project = await kv.get(`project:${projectId}`);
+    if (!project) {
+      console.error('[Server] Project not found:', projectId);
+      return c.json({ error: 'Project not found' }, 404);
+    }
+    
+    const gdriveAssets = project.gdrive_assets || [];
+    console.log('[Server] Current gdrive_assets count:', gdriveAssets.length);
+    
+    // Find all descendants recursively
+    const getAllDescendants = (parentId: string, assets: any[]): any[] => {
+      const children = assets.filter((a: any) => a.parent_id === parentId);
+      let descendants = [...children];
+      for (const child of children) {
+        descendants = [...descendants, ...getAllDescendants(child.id, assets)];
+      }
+      return descendants;
+    };
+    
+    const descendants = getAllDescendants(folderId, gdriveAssets);
+    const idsToRemove = new Set([folderId, ...descendants.map(d => d.id)]);
+    
+    console.log('[Server] Deleting folder and descendants:', {
+      folderId,
+      descendantsCount: descendants.length,
+      totalToDelete: idsToRemove.size
+    });
+    
+    // Filter out the folder and all its descendants
+    const updatedAssets = gdriveAssets.filter((asset: any) => !idsToRemove.has(asset.id));
+    
+    // Update project in KV store
+    const updatedProject = {
+      ...project,
+      gdrive_assets: updatedAssets,
+      updated_at: new Date().toISOString()
+    };
+    
+    await kv.set(`project:${projectId}`, updatedProject);
+    
+    console.log('[Server] ✅ Folder deleted successfully. New count:', updatedAssets.length);
+    
+    return c.json({
+      success: true,
+      deletedCount: idsToRemove.size,
+      message: `Deleted folder and ${descendants.length} descendant(s)`
+    });
+    
+  } catch (error) {
+    console.error('[Server] ❌ Error deleting folder:', error);
+    return c.json({ error: 'Failed to delete folder' }, 500);
+  }
+});
+
 // ============================================================================
 // ADMIN PROFILE ENDPOINTS
 // ============================================================================

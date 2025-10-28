@@ -1,10 +1,20 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
-import { ArrowLeft, Copy, ExternalLink, Share2, Check, FolderIcon, FileIcon, Download, ChevronDown, Info, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, Eye, Search, ArrowUp, Upload } from 'lucide-react';
+import { ArrowLeft, Copy, ExternalLink, Share2, Check, FolderIcon, FileIcon, Download, ChevronDown, Info, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, Eye, Search, ArrowUp, Upload, Trash2 } from 'lucide-react';
 import { GoogleDriveIcon } from './icons/GoogleDriveIcon';
 import { Project, GDriveAsset, Collaborator, ActionableItem } from '../types/project';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from './ui/alert-dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
@@ -84,6 +94,10 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onUpdatePro
   
   // 🆕 Bulk upload dialog state
   const [bulkUploadDialogOpen, setBulkUploadDialogOpen] = useState(false);
+  
+  // 🗑️ Delete folder confirmation state
+  const [deleteFolderDialogOpen, setDeleteFolderDialogOpen] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<GDriveAsset | null>(null);
 
   const gdriveAssets = project.gdrive_assets || [];
   const assets = project.actionable_items || [];
@@ -237,6 +251,12 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onUpdatePro
       ...(currentFolder ? [{ id: currentFolder.id, name: currentFolder.asset_name }] : [])
     ];
   }, [currentFolderId, gdriveAssets]);
+  
+  // 🆕 Get current folder name for bulk upload dialog
+  const currentFolderName = useMemo(() => {
+    const folder = getCurrentFolder();
+    return folder ? folder.asset_name : '';
+  }, [currentFolderId, gdriveAssets]);
 
   // 🆕 PHASE 5: Optimized navigation callbacks
   const navigateToFolder = useCallback((folderId: string | null) => {
@@ -327,6 +347,77 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onUpdatePro
       toast.error('No GDrive link available');
     }
   }, []);
+
+  // 🗑️ Delete folder handlers
+  const handleDeleteFolderClick = useCallback((e: React.MouseEvent, asset: GDriveAsset) => {
+    e.stopPropagation(); // Prevent card click
+    setFolderToDelete(asset);
+    setDeleteFolderDialogOpen(true);
+  }, []);
+
+  const handleConfirmDeleteFolder = useCallback(async () => {
+    if (!folderToDelete) return;
+    
+    try {
+      // Get all descendants of this folder
+      const descendants = getAllDescendants(gdriveAssets, folderToDelete.id);
+      const totalItems = descendants.length + 1; // +1 for the folder itself
+      
+      console.log('[GDrivePage] Deleting folder:', {
+        folderId: folderToDelete.id,
+        folderName: folderToDelete.asset_name,
+        descendantsCount: descendants.length
+      });
+      
+      // Call backend to delete folder and all descendants
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-691c6bba/gdrive/delete-folder`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${publicAnonKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            projectId: project.id,
+            folderId: folderToDelete.id
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[GDrivePage] Failed to delete folder:', errorText);
+        toast.error('Failed to delete folder. Please try again.');
+        return;
+      }
+
+      // Update local state - remove folder and all descendants
+      const idsToRemove = new Set([folderToDelete.id, ...descendants.map(d => d.id)]);
+      const updatedAssets = gdriveAssets.filter(asset => !idsToRemove.has(asset.id));
+      
+      // Update project
+      if (onUpdateProject) {
+        onUpdateProject(project.id, {
+          gdrive_assets: updatedAssets
+        });
+      }
+      
+      // Navigate to parent if currently in deleted folder or its descendants
+      if (currentFolderId && idsToRemove.has(currentFolderId)) {
+        navigateToFolder(folderToDelete.parent_id || null);
+      }
+      
+      toast.success(`Deleted "${folderToDelete.asset_name}" ${totalItems > 1 ? `and ${totalItems - 1} item${totalItems - 1 === 1 ? '' : 's'} inside` : ''}`);
+      
+      // Close dialog
+      setDeleteFolderDialogOpen(false);
+      setFolderToDelete(null);
+    } catch (error) {
+      console.error('[GDrivePage] Error deleting folder:', error);
+      toast.error('Error deleting folder. Please try again.');
+    }
+  }, [folderToDelete, gdriveAssets, project.id, onUpdateProject, currentFolderId, navigateToFolder]);
 
   // 🆕 Bulk upload handler
   const handleBulkUploadSave = useCallback(async (newAssets: any[], onProgress?: (current: number, total: number) => void) => {
@@ -932,6 +1023,19 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onUpdatePro
           }}
         >
           <CardContent className="p-3">
+            {/* 🗑️ Delete Button - Top Left (Hover Only, Admin/Logged-in Only) */}
+            {!isPublicView && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute top-2 left-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800 shadow-sm z-10"
+                onClick={(e) => handleDeleteFolderClick(e, asset)}
+                title="Delete folder"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+              </Button>
+            )}
+            
             <div className="flex items-center gap-3">
               {/* Folder Icon */}
               <div className="flex-shrink-0 w-16 h-16 rounded-md bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center border border-border/50">
@@ -2178,6 +2282,57 @@ export function GDrivePage({ project, collaborators, onBack, onEdit, onUpdatePro
         actionableItems={assets}
         currentFolderId={currentFolderId}
         currentFolderName={getCurrentFolder()?.asset_name || 'Google Drive'}
+        onSave={handleBulkUploadSave}
+      />
+      {/* 🗑️ Delete Folder Confirmation Dialog */}
+      <AlertDialog open={deleteFolderDialogOpen} onOpenChange={setDeleteFolderDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {folderToDelete && (() => {
+                const descendants = getAllDescendants(gdriveAssets, folderToDelete.id);
+                const totalItems = descendants.length;
+                
+                return (
+                  <div className="space-y-2">
+                    <p>
+                      Are you sure you want to delete <strong>"{folderToDelete.asset_name}"</strong>?
+                    </p>
+                    {totalItems > 0 && (
+                      <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                        <p className="text-sm text-red-800 dark:text-red-200">
+                          ⚠️ This folder contains <strong>{totalItems} item{totalItems === 1 ? '' : 's'}</strong> inside (files and subfolders). All of them will be permanently deleted.
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      This action cannot be undone.
+                    </p>
+                  </div>
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeleteFolder}
+              className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+            >
+              Delete Folder
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* 🆕 Bulk Upload Dialog */}
+      <AddGDriveBulkDialog
+        open={bulkUploadDialogOpen}
+        onOpenChange={setBulkUploadDialogOpen}
+        actionableItems={assets}
+        currentFolderId={currentFolderId}
+        currentFolderName={currentFolderName}
         onSave={handleBulkUploadSave}
       />
     </div>

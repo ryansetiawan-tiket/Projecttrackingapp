@@ -56,7 +56,12 @@ export function useColumnOrder(accessToken: string | undefined) {
         );
 
         if (!response.ok) {
-          console.error('Failed to load column order:', response.statusText);
+          // Silently fallback to default columns - this is expected for new users
+          if (response.status === 404) {
+            console.log('No saved column order found, using defaults');
+          } else {
+            console.warn('Failed to load column order:', response.statusText);
+          }
           setColumns(DEFAULT_TABLE_COLUMNS);
           setIsLoading(false);
           return;
