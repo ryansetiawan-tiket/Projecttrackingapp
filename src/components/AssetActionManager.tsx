@@ -79,7 +79,7 @@ const DraggableActionItem = ({ action, index, readOnly, gridLayout, onMove, onTo
       {!readOnly && (
         <div
           ref={drag}
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-all shrink-0 opacity-0 group-hover/item:opacity-100"
         >
           <GripVertical className="h-3.5 w-3.5" />
         </div>
